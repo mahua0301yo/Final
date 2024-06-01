@@ -23,12 +23,35 @@ html_temp = """
 		"""
 stc.html(html_temp)
 
-##### 選擇資料區間
-st.subheader("選擇開始與結束的日期, 區間:2022-01-03 至 2022-11-18")
-start_date = st.text_input('選擇開始日期 (日期格式: 2022-01-03)', '2000-01-01')
-end_date = st.text_input('選擇結束日期 (日期格式: 2022-11-18)', '2100-12-12')
-start_date = datetime.datetime.strptime(start_date,'%Y-%m-%d')
-end_date = datetime.datetime.strptime(end_date,'%Y-%m-%d')
-stockname = st.text_input('請輸入股票代號(代號.TW)', '2330.TW')
-#讀取股票
-stock = yf.download(stockname, start=start_date, end=end_date)
+# 選擇資料區間
+st.subheader("選擇資料區間")
+start_date = st.date_input('選擇開始日期', datetime.date(2000, 1, 1))
+end_date = st.date_input('選擇結束日期', datetime.date(2100, 12, 12))
+stockname = st.text_input('請輸入股票代號 (例: 2330.TW)', '2330.TW')
+
+# 驗證日期輸入
+if start_date > end_date:
+    st.error("開始日期不能晚於結束日期")
+else:
+    try:
+        # 讀取股票資料
+        stock = yf.download(stockname, start=start_date, end=end_date)
+        
+        if stock.empty:
+            st.error("未能讀取到數據，請檢查股票代號是否正確")
+        else:
+            st.success("數據讀取成功")
+
+            # 轉化為字典
+            KBar_dic = stock.to_dict()
+            KBar_dic['product'] = np.repeat(stockname, len(stock))
+            
+            # 其他操作...
+            # 示例：顯示股票數據
+            st.write(stock)
+
+            # 進一步數據處理和可視化
+            # ...
+    
+    except Exception as e:
+        st.error(f"讀取數據時出錯: {e}")
