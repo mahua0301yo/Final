@@ -23,6 +23,12 @@ html_temp = """
 		"""
 stc.html(html_temp)
 
+# 選擇資料區間
+st.subheader("選擇資料區間")
+start_date = st.date_input('選擇開始日期', datetime.date(2000, 1, 1))
+end_date = st.date_input('選擇結束日期', datetime.date(2100, 12, 12))
+stockname = st.text_input('請輸入股票代號 (例: 2330.TW)', '2330.TW')
+
 # 驗證日期輸入
 if start_date > end_date:
     st.error("開始日期不能晚於結束日期")
