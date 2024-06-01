@@ -48,13 +48,20 @@ else:
             # 使用 amount / Open 計算新的 Volume
             stock['Volume'] = stock['amount'] / stock['Open']
             
-            # 轉化為字典
-            KBar_dic = stock.to_dict()
-            KBar_dic['product'] = np.repeat(stockname, len(stock))
+            # 互換 Volume 和 amount 兩欄的位置
+            cols = stock.columns.tolist()
+            vol_idx = cols.index('Volume')
+            amt_idx = cols.index('amount')
+            cols[vol_idx], cols[amt_idx] = cols[amt_idx], cols[vol_idx]
+            stock = stock[cols]
             
             # 顯示股票數據
             st.write(stock)
 
+            # 轉化為字典
+            KBar_dic = stock.to_dict()
+            KBar_dic['product'] = np.repeat(stockname, len(stock))
+            
             # 進一步數據處理和可視化
             # ...
     
