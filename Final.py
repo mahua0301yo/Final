@@ -58,7 +58,6 @@ else:
             
             # 重置索引，將 Date 作為欄位
             stock.reset_index(inplace=True)
-            stock.rename(columns={'Date': 'time'}, inplace=True)
             # 顯示股票數據
             st.write(stock)
 
