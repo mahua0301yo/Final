@@ -23,12 +23,6 @@ html_temp = """
 		"""
 stc.html(html_temp)
 
-# 選擇資料區間
-st.subheader("選擇資料區間")
-start_date = st.date_input('選擇開始日期', datetime.date(2000, 1, 1))
-end_date = st.date_input('選擇結束日期', datetime.date(2100, 12, 12))
-stockname = st.text_input('請輸入股票代號 (例: 2330.TW)', '2330.TW')
-
 # 驗證日期輸入
 if start_date > end_date:
     st.error("開始日期不能晚於結束日期")
@@ -45,8 +39,8 @@ else:
             # 將 Volume 改為 amount
             stock.rename(columns={'Volume': 'amount'}, inplace=True)
             
-            # 使用 amount / Open 計算新的 Volume
-            stock['Volume'] = stock['amount'] / stock['Open']
+            # 使用 amount / Open 計算新的 Volume 並轉換為整數
+            stock['Volume'] = (stock['amount'] / stock['Open']).astype(int)
             
             # 互換 Volume 和 amount 兩欄的位置
             cols = stock.columns.tolist()
