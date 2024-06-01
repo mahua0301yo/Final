@@ -66,7 +66,28 @@ def plot_stock_data(stock):
     fig.add_trace(go.Scatter(x=stock['Date'], y=stock['EMA_20'], mode='lines', name='EMA 20', line=dict(color='orange', width=2)),
                   secondary_y=True)
     
-    fig.layout.yaxis2.showgrid = True
+    # 調整日期軸格式
+    fig.update_xaxes(rangeslider_visible=True,
+                     rangeselector=dict(
+                         buttons=list([
+                             dict(count=1, label="1m", step="month", stepmode="backward"),
+                             dict(count=6, label="6m", step="month", stepmode="backward"),
+                             dict(count=1, label="YTD", step="year", stepmode="todate"),
+                             dict(count=1, label="1y", step="year", stepmode="backward"),
+                             dict(step="all")
+                         ])
+                     ))
+
+    # 調整布局
+    fig.update_layout(
+        title_text='股票價格與技術指標',
+        yaxis_title='成交量',
+        yaxis2_title='價格',
+        xaxis_title='日期',
+        xaxis_rangeslider_visible=False,
+        legend=dict(x=0, y=1, traceorder='normal')
+    )
+
     st.plotly_chart(fig, use_container_width=True)
 
 # 主函數
