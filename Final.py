@@ -42,12 +42,17 @@ else:
         else:
             st.success("數據讀取成功")
 
+            # 將 Volume 改為 amount
+            stock.rename(columns={'Volume': 'amount'}, inplace=True)
+            
+            # 使用 amount / Open 計算新的 Volume
+            stock['Volume'] = stock['amount'] / stock['Open']
+            
             # 轉化為字典
             KBar_dic = stock.to_dict()
             KBar_dic['product'] = np.repeat(stockname, len(stock))
             
-            # 其他操作...
-            # 示例：顯示股票數據
+            # 顯示股票數據
             st.write(stock)
 
             # 進一步數據處理和可視化
