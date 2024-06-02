@@ -40,10 +40,16 @@ def load_stock_data(stockname, start_date, end_date, interval):
         st.error(f"讀取數據時出錯: {e}")
         return None
 
-# 定義函數來計算技術指標
-def calculate_indicators(stock, sma_period, ema_period):
+# 定義函數來計算技術指標，包括布林通道
+def calculate_indicators(stock, sma_period, ema_period, bollinger_period, bollinger_std):
     stock[f'SMA_{sma_period}'] = stock['Close'].rolling(window=sma_period).mean()
     stock[f'EMA_{ema_period}'] = stock['Close'].ewm(span=ema_period, adjust=False).mean()
+
+    # 計算布林通道
+    stock['Middle_Band'] = stock['Close'].rolling(window=bollinger_period).mean()
+    stock['Upper_Band'] = stock['Middle_Band'] + (stock['Close'].rolling(window=bollinger_period).std() * bollinger_std)
+    stock['Lower_Band'] = stock['Middle_Band'] - (stock['Close'].rolling(window=bollinger_period).std() * bollinger_std)
+    
     return stock
 
 # 定義函數來繪製圖表
@@ -56,18 +62,50 @@ def plot_stock_data(stock, sma_period, ema_period):
                                  high=stock['High'],
                                  low=stock['Low'],
                                  close=stock['Close'],
-                                 name='K線圖'),
+                                 name='價格'),
                   secondary_y=True)
 
-    # 繪製成交量柱狀圖
-    fig.add_trace(go.Bar(x=stock['Date'], y=stock['Volume'], name='成交量'), secondary_y=False)
-
     # 繪製 SMA 和 EMA
-    fig.add_trace(go.Scatter(x=stock['Date'], y=stock[f'SMA_{sma_period}'], mode='lines', name=f'SMA_{sma_period}'), secondary_y=True)
-    fig.add_trace(go.Scatter(x=stock['Date'], y=stock[f'EMA_{ema_period}'], mode='lines', name=f'EMA_{ema_period}'), secondary_y=True)
+    fig.add_trace(go.Scatter(x=stock['Date'],
+                             y=stock[f'SMA_{sma_period}'],
+                             mode='lines',
+                             name=f'SMA_{sma_period}'), secondary_y=True)
 
-    # 更新圖表佈局
-    fig.update_xaxes(rangeslider_visible=True,
+    fig.add_trace(go.Scatter(x=stock['Date'],
+                             y=stock[f'EMA_{ema_period}'],
+                             mode='lines',
+                             name=f'EMA_{ema_period}'), secondary_y=True)
+
+    # 繪製布林通道
+    fig.add_trace(go.Scatter(x=stock['Date'],
+                             y=stock['Upper_Band'],
+                             mode='lines',
+                             line=dict(color='rgba(255, 0, 0, 0.5)'),
+                             name='上軌'), secondary_y=True)
+    fig.add_trace(go.Scatter(x=stock['Date'],
+                             y=stock['Middle_Band'],
+                             mode='lines',
+                             line=dict(color='rgba(0, 0, 255, 0.5)'),
+                             name='中軌'), secondary_y=True)
+    fig.add_trace(go.Scatter(x=stock['Date'],
+                             y=stock['Lower_Band'],
+                             mode='lines',
+                             line=dict(color='rgba(0, 255, 0, 0.5)'),
+                             name='下軌'), secondary_y=True)
+
+    # 繪製成交量
+    fig.add_trace(go.Bar(x=stock['Date'],
+                         y=stock['amount'],
+                         name='成交量'), secondary_y=False)
+
+    # 調整 X 軸和 Y 軸標籤
+    fig.update_xaxes(title_text='日期')
+    fig.update_yaxes(title_text='成交量', secondary_y=False)
+    fig.update_yaxes(title_text='價格', secondary_y=True)
+
+    # 更新布局和樣式
+    fig.update_layout(title='股票價格與技術指標',
+                      xaxis_rangeslider_visible=True,
                      rangeselector=dict(
                          buttons=list([
                              dict(count=1, label="1m", step="month", stepmode="backward"),
@@ -114,13 +152,17 @@ def main():
     sma_period = st.number_input('請輸入SMA週期', min_value=1, max_value=100, value=20, step=1)
     ema_period = st.number_input('請輸入EMA週期', min_value=1, max_value=100, value=20, step=1)
 
+    # 輸入布林通道的週期和標準差倍數
+    bollinger_period = st.number_input('請輸入布林通道週期', min_value=1, max_value=100, value=20, step=1)
+    bollinger_std = st.number_input('請輸入布林通道標準差倍數', min_value=0.1, max_value=10.0, value=2.0, step=0.1)
+
     # 驗證日期輸入
     if start_date > end_date:
         st.error("開始日期不能晚於結束日期")
     else:
         stock = load_stock_data(stockname, start_date, end_date, interval)
         if stock is not None:
-            stock = calculate_indicators(stock, sma_period, ema_period)
+            stock = calculate_indicators(stock, sma_period, ema_period, bollinger_period, bollinger_std)
             plot_stock_data(stock, sma_period, ema_period)
 
 if __name__ == "__main__":
