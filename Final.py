@@ -28,15 +28,13 @@ def load_stock_data(stockname, start_date, end_date, interval):
             st.success("數據讀取成功")
             stock.rename(columns={'Volume': 'amount'}, inplace=True)
             stock.drop(columns=['Adj Close'], inplace=True)
-            stock['Volume'] = (stock['amount'] / (stock['Open'] + stock['Close']) / 2).astype(int)
+            stock['Volume'] = (stock['amount'] / (stock['Open']+stock['Close'])/2).astype(int)
             cols = stock.columns.tolist()
             vol_idx = cols.index('Volume')
             amt_idx = cols.index('amount')
             cols[vol_idx], cols[amt_idx] = cols[amt_idx], cols[vol_idx]
             stock = stock[cols]
             stock.reset_index(inplace=True)
-            stock['Date'] = pd.to_datetime(stock['Date'])
-            stock.set_index('Date', inplace=True)
             return stock
     except Exception as e:
         st.error(f"讀取數據時出錯: {e}")
@@ -53,19 +51,19 @@ def plot_stock_data(stock, sma_period, ema_period):
     fig = make_subplots(specs=[[{"secondary_y": True}]])
     
     # 繪製 K 線圖
-    fig.add_trace(go.Candlestick(x=stock.index,
+    fig.add_trace(go.Candlestick(x=stock['Date'],
                                  open=stock['Open'], high=stock['High'],
                                  low=stock['Low'], close=stock['Close'], name='K線'),
                   secondary_y=True)
     
     # 繪製成交量
-    fig.add_trace(go.Bar(x=stock.index, y=stock['Volume'], name='成交量', marker=dict(color='black')),
+    fig.add_trace(go.Bar(x=stock['Date'], y=stock['Volume'], name='成交量', marker=dict(color='black')),
                   secondary_y=False)
     
     # 繪製 SMA 和 EMA
-    fig.add_trace(go.Scatter(x=stock.index, y=stock[f'SMA_{sma_period}'], mode='lines', name=f'SMA {sma_period}', line=dict(color='blue', width=2)),
+    fig.add_trace(go.Scatter(x=stock['Date'], y=stock[f'SMA_{sma_period}'], mode='lines', name=f'SMA {sma_period}', line=dict(color='blue', width=2)),
                   secondary_y=True)
-    fig.add_trace(go.Scatter(x=stock.index, y=stock[f'EMA_{ema_period}'], mode='lines', name=f'EMA {ema_period}', line=dict(color='orange', width=2)),
+    fig.add_trace(go.Scatter(x=stock['Date'], y=stock[f'EMA_{ema_period}'], mode='lines', name=f'EMA {ema_period}', line=dict(color='orange', width=2)),
                   secondary_y=True)
     
     # 調整日期軸格式
@@ -105,7 +103,9 @@ def main():
     # 選擇K線時間長
     interval_options = {
         "1天": "1d",
+        "3天": "3d",
         "1星期": "1wk",
+        "2星期": "2wk",
         "1個月": "1mo",
         "3個月": "3mo",
         "6個月": "6mo",
@@ -124,15 +124,6 @@ def main():
     else:
         stock = load_stock_data(stockname, start_date, end_date, interval)
         if stock is not None:
-            if interval in ["3mo", "6mo", "1y"]:
-                stock = stock.resample(interval).agg({
-                    'Open': 'first',
-                    'High': 'max',
-                    'Low': 'min',
-                    'Close': 'last',
-                    'Volume': 'sum'
-                }).dropna().reset_index()
-                
             stock = calculate_indicators(stock, sma_period, ema_period)
             plot_stock_data(stock, sma_period, ema_period)
 
