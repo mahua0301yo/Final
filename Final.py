@@ -103,13 +103,11 @@ def main():
     # 選擇K線時間長
     interval_options = {
         "1天": "1d",
-        "3天": "3d",
         "1星期": "1wk",
-        "2星期": "2wk",
         "1個月": "1mo",
-        "3個月": "3mo",
-        "6個月": "6mo",
-        "1年": "1y"
+        "3個月": "1mo",  # 設定為1mo後自行處理數據
+        "6個月": "1mo",  # 設定為1mo後自行處理數據
+        "1年": "1mo"     # 設定為1mo後自行處理數據
     }
     interval_label = st.selectbox("選擇K線時間長", list(interval_options.keys()))
     interval = interval_options[interval_label]
@@ -124,6 +122,31 @@ def main():
     else:
         stock = load_stock_data(stockname, start_date, end_date, interval)
         if stock is not None:
+            if interval_label == "3個月":
+                stock = stock.resample('3M').agg({
+                    'Open': 'first',
+                    'High': 'max',
+                    'Low': 'min',
+                    'Close': 'last',
+                    'Volume': 'sum'
+                }).dropna().reset_index()
+            elif interval_label == "6個月":
+                stock = stock.resample('6M').agg({
+                    'Open': 'first',
+                    'High': 'max',
+                    'Low': 'min',
+                    'Close': 'last',
+                    'Volume': 'sum'
+                }).dropna().reset_index()
+            elif interval_label == "1年":
+                stock = stock.resample('1Y').agg({
+                    'Open': 'first',
+                    'High': 'max',
+                    'Low': 'min',
+                    'Close': 'last',
+                    'Volume': 'sum'
+                }).dropna().reset_index()
+                
             stock = calculate_indicators(stock, sma_period, ema_period)
             plot_stock_data(stock, sma_period, ema_period)
 
