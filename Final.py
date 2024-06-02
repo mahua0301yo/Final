@@ -107,9 +107,7 @@ def main():
         "1星期": "1wk",
         "2星期": "2wk",
         "1個月": "1mo",
-        "3個月": "3mo",
-        "6個月": "6mo",
-        "1年": "1y"
+        "3個月": "3mo"
     }
     interval_label = st.selectbox("選擇K線時間長", list(interval_options.keys()))
     interval = interval_options[interval_label]
