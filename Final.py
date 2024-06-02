@@ -161,4 +161,66 @@ def plot_stock_data(stock, order_record):
     # 繪製MACD
     fig_macd = go.Figure()
     fig_macd.add_trace(go.Scatter(x=stock['Date'], y=stock['MACD'], line=dict(color='blue', width=1), name='MACD'))
-    fig_macd.add_trace(go.Scatter(x=stock['Date'], y=stock['Signal_Line'], line=dict(color='red',
+    fig_macd.add_trace(go.Scatter(x=stock['Date'], y=stock['Signal_Line'], line=dict(color='red', width=1), name='信號線'))
+    fig_macd.add_trace(go.Bar(x=stock['Date'], y=stock['MACD'] - stock['Signal_Line'], name='柱狀圖'))
+
+    fig_macd.update_layout(title='MACD',
+                           xaxis_rangeslider_visible=False)
+    st.plotly_chart(fig_macd, use_container_width=True)
+
+    # 繪製KDJ
+    fig_kdj = go.Figure()
+    fig_kdj.add_trace(go.Scatter(x=stock['Date'], y=stock['K'], line=dict(color='blue', width=1), name='K'))
+    fig_kdj.add_trace(go.Scatter(x=stock['Date'], y=stock['D'], line=dict(color='orange', width=1), name='D'))
+    fig_kdj.add_trace(go.Scatter(x=stock['Date'], y=stock['J'], line=dict(color='green', width=1), name='J'))
+
+    fig_kdj.update_layout(title='KDJ',
+                          xaxis_rangeslider_visible=False)
+    st.plotly_chart(fig_kdj, use_container_width=True)
+
+# 主函數
+def main():
+    display_header()
+
+    # 選擇資料區間
+    st.subheader("選擇資料區間")
+    start_date = st.date_input('選擇開始日期', datetime.date(2015, 1, 1))
+    end_date = st.date_input('選擇結束日期', datetime.date(2100, 12, 31))
+    stockname = st.text_input('請輸入股票代號 (例: 2330.TW)', '2330.TW')
+
+    # 選擇K線時間長
+    interval_options = {
+        "1天": "1d",
+        "1星期": "1wk",
+        "1個月": "1mo",
+        "3個月": "3mo"
+    }
+    interval_label = st.selectbox("選擇K線時間長", list(interval_options.keys()))
+    interval = interval_options[interval_label]
+
+    # 輸入布林通道的週期和標準差倍數
+    bollinger_period = st.number_input('請輸入布林通道週期', min_value=1, max_value=100, value=20, step=1)
+    bollinger_std = st.number_input('請輸入布林通道標準差倍數', min_value=0.1, max_value=10.0, value=2.0, step=0.1)
+
+    # 輸入MACD的參數
+    macd_short_period = st.number_input('請輸入MACD短期EMA週期', min_value=1, max_value=50, value=12, step=1)
+    macd_long_period = st.number_input('請輸入MACD長期EMA週期', min_value=1, max_value=50, value=26, step=1)
+    macd_signal_period = st.number_input('請輸入MACD信號線週期', min_value=1, max_value=50, value=9, step=1)
+
+    # 輸入移動停損點數和均線參數
+    long_ma_period = st.number_input('請輸入長期均線週期', min_value=1, max_value=100, value=20, step=1)
+    short_ma_period = st.number_input('請輸入短期均線週期', min_value=1, max_value=100, value=10, step=1)
+    move_stop_loss = st.number_input('請輸入移動停損點數', min_value=1, max_value=100, value=30, step=1)
+
+    # 驗證日期輸入
+    if start_date > end_date:
+        st.error("開始日期不能晚於結束日期")
+    else:
+        stock = load_stock_data(stockname, start_date, end_date, interval)
+        if stock is not None:
+            stock = calculate_indicators(stock, bollinger_period, bollinger_std, macd_short_period, macd_long_period, macd_signal_period)
+            order_record = trading_strategy(stock, long_ma_period, short_ma_period, move_stop_loss)
+            plot_stock_data(stock, order_record)
+
+if __name__ == "__main__":
+    main()
