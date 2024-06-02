@@ -100,6 +100,20 @@ def main():
     end_date = st.date_input('選擇結束日期', datetime.date(2100, 12, 31))
     stockname = st.text_input('請輸入股票代號 (例: 2330.TW)', '2330.TW')
     
+    # 選擇K線時間長
+    interval_options = {
+        "1天": "1d",
+        "3天": "3d",
+        "1星期": "1wk",
+        "2星期": "2wk",
+        "1個月": "1mo",
+        "3個月": "3mo",
+        "6個月": "6mo",
+        "1年": "1y"
+    }
+    interval_label = st.selectbox("選擇K線時間長", list(interval_options.keys()))
+    interval = interval_options[interval_label]
+    
     # 輸入 SMA 和 EMA 的週期
     sma_period = st.number_input('請輸入SMA週期', min_value=1, max_value=100, value=20, step=1)
     ema_period = st.number_input('請輸入EMA週期', min_value=1, max_value=100, value=20, step=1)
