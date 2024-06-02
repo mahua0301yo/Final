@@ -49,24 +49,24 @@ def calculate_indicators(stock, sma_period, ema_period):
 # 定義函數來繪製圖表
 def plot_stock_data(stock, sma_period, ema_period):
     fig = make_subplots(specs=[[{"secondary_y": True}]])
-    
+
     # 繪製 K 線圖
     fig.add_trace(go.Candlestick(x=stock['Date'],
-                                 open=stock['Open'], high=stock['High'],
-                                 low=stock['Low'], close=stock['Close'], name='K線'),
+                                 open=stock['Open'],
+                                 high=stock['High'],
+                                 low=stock['Low'],
+                                 close=stock['Close'],
+                                 name='K線圖'),
                   secondary_y=True)
-    
-    # 繪製成交量
-    fig.add_trace(go.Bar(x=stock['Date'], y=stock['Volume'], name='成交量', marker=dict(color='black')),
-                  secondary_y=False)
-    
+
+    # 繪製成交量柱狀圖
+    fig.add_trace(go.Bar(x=stock['Date'], y=stock['Volume'], name='成交量'), secondary_y=False)
+
     # 繪製 SMA 和 EMA
-    fig.add_trace(go.Scatter(x=stock['Date'], y=stock[f'SMA_{sma_period}'], mode='lines', name=f'SMA {sma_period}', line=dict(color='blue', width=2)),
-                  secondary_y=True)
-    fig.add_trace(go.Scatter(x=stock['Date'], y=stock[f'EMA_{ema_period}'], mode='lines', name=f'EMA {ema_period}', line=dict(color='orange', width=2)),
-                  secondary_y=True)
-    
-    # 調整日期軸格式
+    fig.add_trace(go.Scatter(x=stock['Date'], y=stock[f'SMA_{sma_period}'], mode='lines', name=f'SMA_{sma_period}'), secondary_y=True)
+    fig.add_trace(go.Scatter(x=stock['Date'], y=stock[f'EMA_{ema_period}'], mode='lines', name=f'EMA_{ema_period}'), secondary_y=True)
+
+    # 更新圖表佈局
     fig.update_xaxes(rangeslider_visible=True,
                      rangeselector=dict(
                          buttons=list([
@@ -93,13 +93,13 @@ def plot_stock_data(stock, sma_period, ema_period):
 # 主函數
 def main():
     display_header()
-    
+
     # 選擇資料區間
     st.subheader("選擇資料區間")
     start_date = st.date_input('選擇開始日期', datetime.date(2000, 1, 1))
     end_date = st.date_input('選擇結束日期', datetime.date(2100, 12, 31))
     stockname = st.text_input('請輸入股票代號 (例: 2330.TW)', '2330.TW')
-    
+
     # 選擇K線時間長
     interval_options = {
         "1天": "1d",
@@ -113,11 +113,11 @@ def main():
     }
     interval_label = st.selectbox("選擇K線時間長", list(interval_options.keys()))
     interval = interval_options[interval_label]
-    
+
     # 輸入 SMA 和 EMA 的週期
     sma_period = st.number_input('請輸入SMA週期', min_value=1, max_value=100, value=20, step=1)
     ema_period = st.number_input('請輸入EMA週期', min_value=1, max_value=100, value=20, step=1)
-    
+
     # 驗證日期輸入
     if start_date > end_date:
         st.error("開始日期不能晚於結束日期")
