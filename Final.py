@@ -99,6 +99,88 @@ def plot_stock_data(stock):
     fig_kdj.update_layout(title='KDJ',
                           xaxis_rangeslider_visible=False)
     st.plotly_chart(fig_kdj, use_container_width=True)
+class OrderRecord:
+    def __init__(self):
+        self.records = []
+        self.open_interest = 0
+        self.total_profit = 0
+        self.trades = []
+
+    def Order(self, action, product, time, price, qty):
+        self.records.append((action, product, time, price, qty))
+        if action == 'Buy':
+            self.open_interest += qty
+        elif action == 'Sell':
+            self.open_interest -= qty
+
+    def Cover(self, action, product, time, price, qty):
+        self.records.append((action, product, time, price, qty))
+        if action == 'Buy':
+            self.open_interest += qty
+        elif action == 'Sell':
+            self.open_interest -= qty
+        self.trades.append((product, time, price, qty))
+        self.total_profit += price - self.records[-1][3]
+
+    def GetOpenInterest(self):
+        return self.open_interest
+
+    def GetTradeRecord(self):
+        return self.trades
+
+    def GetProfit(self):
+        return self.total_profit
+
+    def GetTotalProfit(self):
+        return self.total_profit
+
+    def GetWinRate(self):
+        wins = [t for t in self.trades if t[3] > 0]
+        return len(wins) / len(self.trades) if self.trades else 0
+
+    def GetAccLoss(self):
+        losses = [t for t in self.trades if t[3] < 0]
+        return min(losses) if losses else 0
+
+    def GetMDD(self):
+        max_drawdown = 0
+        peak = -float('inf')
+        for trade in self.trades:
+            peak = max(peak, trade[3])
+            drawdown = peak - trade[3]
+            max_drawdown = max(max_drawdown, drawdown)
+        return max_drawdown
+def backtest_strategy(stock, long_ma_period, short_ma_period, move_stop_loss):
+    stock['MA_long'] = stock['Close'].rolling(window=long_ma_period).mean()
+    stock['MA_short'] = stock['Close'].rolling(window=short_ma_period).mean()
+
+    order_record = OrderRecord()
+    order_price = None
+    stop_loss_point = None
+
+    for i in range(1, len(stock)):
+        if not pd.isna(stock['MA_long'].iloc[i-1]):
+            if order_record.GetOpenInterest() == 0:
+                if stock['MA_short'].iloc[i-1] <= stock['MA_long'].iloc[i-1] and stock['MA_short'].iloc[i] > stock['MA_long'].iloc[i]:
+                    order_record.Order('Buy', stock['Date'].iloc[i], stock['Close'].iloc[i], 1)
+                    order_price = stock['Close'].iloc[i]
+                    stop_loss_point = order_price - move_stop_loss
+                elif stock['MA_short'].iloc[i-1] >= stock['MA_long'].iloc[i-1] and stock['MA_short'].iloc[i] < stock['MA_long'].iloc[i]:
+                    order_record.Order('Sell', stock['Date'].iloc[i], stock['Close'].iloc[i], 1)
+                    order_price = stock['Close'].iloc[i]
+                    stop_loss_point = order_price + move_stop_loss
+            elif order_record.GetOpenInterest() == 1:
+                if stock['Close'].iloc[i] - move_stop_loss > stop_loss_point:
+                    stop_loss_point = stock['Close'].iloc[i] - move_stop_loss
+                elif stock['Close'].iloc[i] < stop_loss_point:
+                    order_record.Cover('Sell', stock['Date'].iloc[i], stock['Close'].iloc[i], 1)
+            elif order_record.GetOpenInterest() == -1:
+                if stock['Close'].iloc[i] + move_stop_loss < stop_loss_point:
+                    stop_loss_point = stock['Close'].iloc[i] + move_stop_loss
+                elif stock['Close'].iloc[i] > stop_loss_point:
+                    order_record.Cover('Buy', stock['Date'].iloc[i], stock['Close'].iloc[i], 1)
+
+    return order_record
 
 # 主函數
 def main():
