@@ -182,14 +182,13 @@ def backtest_strategy(stock, long_ma_period, short_ma_period, move_stop_loss):
 
     return order_record
 
-# 主函數
 def main():
     display_header()
 
     # 選擇資料區間
     st.subheader("選擇資料區間")
-    start_date = st.date_input('選擇開始日期', datetime.date(2015, 1, 1))
-    end_date = st.date_input('選擇結束日期', datetime.date(2100, 12, 31))
+    start_date = st.date_input('選擇開始日期', datetime.date(2000, 1, 1), min_value=datetime.date(1900, 1, 1), max_value=datetime.date.today())
+    end_date = st.date_input('選擇結束日期', datetime.date(2100, 12, 31), min_value=datetime.date(1900, 1, 1), max_value=datetime.date.today())
     stockname = st.text_input('請輸入股票代號 (例: 2330.TW)', '2330.TW')
 
     # 選擇K線時間長
@@ -202,6 +201,10 @@ def main():
     interval_label = st.selectbox("選擇K線時間長", list(interval_options.keys()))
     interval = interval_options[interval_label]
 
+    # 輸入 SMA 和 EMA 的週期
+    sma_period = st.number_input('請輸入SMA週期', min_value=1, max_value=100, value=20, step=1)
+    ema_period = st.number_input('請輸入EMA週期', min_value=1, max_value=100, value=20, step=1)
+
     # 輸入布林通道的週期和標準差倍數
     bollinger_period = st.number_input('請輸入布林通道週期', min_value=1, max_value=100, value=20, step=1)
     bollinger_std = st.number_input('請輸入布林通道標準差倍數', min_value=0.1, max_value=10.0, value=2.0, step=0.1)
@@ -211,14 +214,29 @@ def main():
     macd_long_period = st.number_input('請輸入MACD長期EMA週期', min_value=1, max_value=50, value=26, step=1)
     macd_signal_period = st.number_input('請輸入MACD信號線週期', min_value=1, max_value=50, value=9, step=1)
 
+    # 輸入回測參數
+    long_ma_period = st.number_input('請輸入長期MA週期', min_value=1, max_value=100, value=20, step=1)
+    short_ma_period = st.number_input('請輸入短期MA週期', min_value=1, max_value=100, value=10, step=1)
+    move_stop_loss = st.number_input('請輸入移動停損點數', min_value=0.1, max_value=100.0, value=30.0, step=0.1)
+
     # 驗證日期輸入
     if start_date > end_date:
         st.error("開始日期不能晚於結束日期")
     else:
         stock = load_stock_data(stockname, start_date, end_date, interval)
         if stock is not None:
-            stock = calculate_indicators(stock, bollinger_period, bollinger_std, macd_short_period, macd_long_period, macd_signal_period)
-            plot_stock_data(stock)
+            stock = calculate_indicators(stock, sma_period, ema_period, bollinger_period, bollinger_std, macd_short_period, macd_long_period, macd_signal_period)
+            plot_stock_data(stock, sma_period, ema_period)
+
+            # 執行回測
+            order_record = backtest_strategy(stock, long_ma_period, short_ma_period, move_stop_loss)
+            st.write("回測結果：")
+            st.write("交易紀錄：", order_record.GetTradeRecord())
+            st.write("淨利：", order_record.GetTotalProfit())
+            st.write("勝率：", order_record.GetWinRate())
+            st.write("最大連續虧損：", order_record.GetAccLoss())
+            st.write("最大資金回落(MDD)：", order_record.GetMDD())
 
 if __name__ == "__main__":
     main()
+
