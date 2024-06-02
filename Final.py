@@ -20,14 +20,20 @@ def display_header():
 # 定義函數來讀取股票數據
 def load_stock_data(stockname, start_date, end_date, interval):
     try:
-        stock = yf.download(stockname, start=start_date, end=end_date, interval="1d")
+        stock = yf.download(stockname, start=start_date, end=end_date, interval=interval)
         if stock.empty:
             st.error("未能讀取到數據，請檢查股票代號是否正確")
             return None
         else:
             st.success("數據讀取成功")
-            stock.rename(columns={'Volume': 'Amount'}, inplace=True)
+            stock.rename(columns={'Volume': 'amount'}, inplace=True)
             stock.drop(columns=['Adj Close'], inplace=True)
+            stock['Volume'] = (stock['amount'] / (stock['Open'] + stock['Close']) / 2).astype(int)
+            cols = stock.columns.tolist()
+            vol_idx = cols.index('Volume')
+            amt_idx = cols.index('amount')
+            cols[vol_idx], cols[amt_idx] = cols[amt_idx], cols[vol_idx]
+            stock = stock[cols]
             stock.reset_index(inplace=True)
             stock['Date'] = pd.to_datetime(stock['Date'])
             stock.set_index('Date', inplace=True)
@@ -35,25 +41,6 @@ def load_stock_data(stockname, start_date, end_date, interval):
     except Exception as e:
         st.error(f"讀取數據時出錯: {e}")
         return None
-
-# 定義函數來重新取樣數據
-def resample_data(stock, interval):
-    if interval == "1d":
-        return stock
-    else:
-        resample_rule = {
-            "3mo": 'Q',
-            "6mo": '2Q',
-            "1y": 'A'
-        }
-        stock = stock.resample(resample_rule[interval]).agg({
-            'Open': 'first',
-            'High': 'max',
-            'Low': 'min',
-            'Close': 'last',
-            'Volume': 'sum'
-        }).dropna()
-        return stock
 
 # 定義函數來計算技術指標
 def calculate_indicators(stock, sma_period, ema_period):
@@ -137,7 +124,15 @@ def main():
     else:
         stock = load_stock_data(stockname, start_date, end_date, interval)
         if stock is not None:
-            stock = resample_data(stock, interval)
+            if interval in ["3mo", "6mo", "1y"]:
+                stock = stock.resample(interval).agg({
+                    'Open': 'first',
+                    'High': 'max',
+                    'Low': 'min',
+                    'Close': 'last',
+                    'Volume': 'sum'
+                }).dropna().reset_index()
+                
             stock = calculate_indicators(stock, sma_period, ema_period)
             plot_stock_data(stock, sma_period, ema_period)
 
