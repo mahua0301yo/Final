@@ -69,30 +69,36 @@ def calculate_indicators(stock, bollinger_period, bollinger_std, macd_short_peri
 
 # 繪製股票數據和技術指標
 def plot_stock_data(stock):
-    fig = make_subplots(rows=3, cols=1, shared_xaxes=True, vertical_spacing=0.1,
-                        row_heights=[0.5, 0.3, 0.2],
-                        subplot_titles=('價格與布林通道', 'MACD', 'KDJ'))
+    # 繪製K線圖與布林通道
+    fig_kline = go.Figure()
+    fig_kline.add_trace(go.Candlestick(x=stock['Date'], open=stock['Open'], high=stock['High'], low=stock['Low'], close=stock['Close'], name='價格'))
+    fig_kline.add_trace(go.Scatter(x=stock['Date'], y=stock['Middle_Band'], line=dict(color='blue', width=1), name='中軌'))
+    fig_kline.add_trace(go.Scatter(x=stock['Date'], y=stock['Upper_Band'], line=dict(color='red', width=1), name='上軌'))
+    fig_kline.add_trace(go.Scatter(x=stock['Date'], y=stock['Lower_Band'], line=dict(color='green', width=1), name='下軌'))
 
-    # 繪製價格與布林通道
-    fig.add_trace(go.Candlestick(x=stock['Date'], open=stock['Open'], high=stock['High'], low=stock['Low'], close=stock['Close'], name='價格'), row=1, col=1)
-    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Middle_Band'], line=dict(color='blue', width=1), name='中軌'), row=1, col=1)
-    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Upper_Band'], line=dict(color='red', width=1), name='上軌'), row=1, col=1)
-    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Lower_Band'], line=dict(color='green', width=1), name='下軌'), row=1, col=1)
+    fig_kline.update_layout(title='股票價格與布林通道',
+                            xaxis_rangeslider_visible=False)
+    st.plotly_chart(fig_kline, use_container_width=True)
 
     # 繪製MACD
-    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['MACD'], line=dict(color='blue', width=1), name='MACD'), row=2, col=1)
-    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Signal_Line'], line=dict(color='red', width=1), name='信號線'), row=2, col=1)
-    fig.add_trace(go.Bar(x=stock['Date'], y=stock['MACD'] - stock['Signal_Line'], name='柱狀圖'), row=2, col=1)
+    fig_macd = go.Figure()
+    fig_macd.add_trace(go.Scatter(x=stock['Date'], y=stock['MACD'], line=dict(color='blue', width=1), name='MACD'))
+    fig_macd.add_trace(go.Scatter(x=stock['Date'], y=stock['Signal_Line'], line=dict(color='red', width=1), name='信號線'))
+    fig_macd.add_trace(go.Bar(x=stock['Date'], y=stock['MACD'] - stock['Signal_Line'], name='柱狀圖'))
+
+    fig_macd.update_layout(title='MACD',
+                           xaxis_rangeslider_visible=False)
+    st.plotly_chart(fig_macd, use_container_width=True)
 
     # 繪製KDJ
-    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['K'], line=dict(color='blue', width=1), name='K'), row=3, col=1)
-    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['D'], line=dict(color='orange', width=1), name='D'), row=3, col=1)
-    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['J'], line=dict(color='green', width=1), name='J'), row=3, col=1)
+    fig_kdj = go.Figure()
+    fig_kdj.add_trace(go.Scatter(x=stock['Date'], y=stock['K'], line=dict(color='blue', width=1), name='K'))
+    fig_kdj.add_trace(go.Scatter(x=stock['Date'], y=stock['D'], line=dict(color='orange', width=1), name='D'))
+    fig_kdj.add_trace(go.Scatter(x=stock['Date'], y=stock['J'], line=dict(color='green', width=1), name='J'))
 
-    # 更新布局和樣式
-    fig.update_layout(title='股票價格與技術指標',
-                      xaxis_rangeslider_visible=True)
-    st.plotly_chart(fig, use_container_width=True)
+    fig_kdj.update_layout(title='KDJ',
+                          xaxis_rangeslider_visible=False)
+    st.plotly_chart(fig_kdj, use_container_width=True)
 
 # 主函數
 def main():
