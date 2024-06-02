@@ -18,9 +18,9 @@ def display_header():
     stc.html(html_temp)
 
 # 定義函數來讀取股票數據
-def load_stock_data(stockname, start_date, end_date):
+def load_stock_data(stockname, start_date, end_date, interval):
     try:
-        stock = yf.download(stockname, start=start_date, end=end_date)
+        stock = yf.download(stockname, start=start_date, end=end_date, interval=interval)
         if stock.empty:
             st.error("未能讀取到數據，請檢查股票代號是否正確")
             return None
@@ -122,7 +122,7 @@ def main():
     if start_date > end_date:
         st.error("開始日期不能晚於結束日期")
     else:
-        stock = load_stock_data(stockname, start_date, end_date)
+        stock = load_stock_data(stockname, start_date, end_date, interval)
         if stock is not None:
             stock = calculate_indicators(stock, sma_period, ema_period)
             plot_stock_data(stock, sma_period, ema_period)
