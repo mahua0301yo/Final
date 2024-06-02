@@ -45,6 +45,38 @@ def calculate_indicators(stock, bollinger_params, macd_params):
     stock['Signal_Line'] = stock['MACD'].ewm(span=signal_period, adjust=False).mean()
 
     return stock
+class OrderRecord:
+    def __init__(self):
+        self.trade_record = []
+
+    def Order(self, action, product, time, price, quantity):
+        self.trade_record.append({'action': action, 'product': product, 'time': time, 'price': price, 'quantity': quantity})
+
+    def Cover(self, action, product, time, price, quantity):
+        self.trade_record.append({'action': action, 'product': product, 'time': time, 'price': price, 'quantity': quantity})
+
+    def GetTradeRecord(self):
+        return self.trade_record
+
+    def GetProfit(self):
+        # Calculate profit
+        pass
+
+    def GetTotalProfit(self):
+        # Calculate total profit
+        pass
+
+    def GetWinRate(self):
+        # Calculate win rate
+        pass
+
+    def GetAccLoss(self):
+        # Calculate accumulated loss
+        pass
+
+    def GetMDD(self):
+        # Calculate maximum drawdown
+        pass
 
 # KDJ strategy
 def kdj_strategy(stock):
