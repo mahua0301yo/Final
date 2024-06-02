@@ -41,13 +41,13 @@ def load_stock_data(stockname, start_date, end_date):
         return None
 
 # 定義函數來計算技術指標
-def calculate_indicators(stock):
-    stock['SMA_20'] = stock['Close'].rolling(window=20).mean()
-    stock['EMA_20'] = stock['Close'].ewm(span=20, adjust=False).mean()
+def calculate_indicators(stock, sma_period, ema_period):
+    stock[f'SMA_{sma_period}'] = stock['Close'].rolling(window=sma_period).mean()
+    stock[f'EMA_{ema_period}'] = stock['Close'].ewm(span=ema_period, adjust=False).mean()
     return stock
 
 # 定義函數來繪製圖表
-def plot_stock_data(stock):
+def plot_stock_data(stock, sma_period, ema_period):
     fig = make_subplots(specs=[[{"secondary_y": True}]])
     
     # 繪製 K 線圖
@@ -61,9 +61,9 @@ def plot_stock_data(stock):
                   secondary_y=False)
     
     # 繪製 SMA 和 EMA
-    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['SMA_20'], mode='lines', name='SMA 20', line=dict(color='blue', width=2)),
+    fig.add_trace(go.Scatter(x=stock['Date'], y=stock[f'SMA_{sma_period}'], mode='lines', name=f'SMA {sma_period}', line=dict(color='blue', width=2)),
                   secondary_y=True)
-    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['EMA_20'], mode='lines', name='EMA 20', line=dict(color='orange', width=2)),
+    fig.add_trace(go.Scatter(x=stock['Date'], y=stock[f'EMA_{ema_period}'], mode='lines', name=f'EMA {ema_period}', line=dict(color='orange', width=2)),
                   secondary_y=True)
     
     # 調整日期軸格式
@@ -100,14 +100,18 @@ def main():
     end_date = st.date_input('選擇結束日期', datetime.date(2100, 12, 31))
     stockname = st.text_input('請輸入股票代號 (例: 2330.TW)', '2330.TW')
     
+    # 輸入 SMA 和 EMA 的週期
+    sma_period = st.number_input('請輸入SMA週期', min_value=1, max_value=100, value=20, step=1)
+    ema_period = st.number_input('請輸入EMA週期', min_value=1, max_value=100, value=20, step=1)
+    
     # 驗證日期輸入
     if start_date > end_date:
         st.error("開始日期不能晚於結束日期")
     else:
         stock = load_stock_data(stockname, start_date, end_date)
         if stock is not None:
-            stock = calculate_indicators(stock)
-            plot_stock_data(stock)
+            stock = calculate_indicators(stock, sma_period, ema_period)
+            plot_stock_data(stock, sma_period, ema_period)
 
 if __name__ == "__main__":
     main()
