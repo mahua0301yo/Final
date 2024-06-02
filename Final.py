@@ -222,7 +222,6 @@ def plot_stock_data(stock, order_record):
     acc_loss = order_record.GetAccLoss()
     mdd = order_record.GetMDD()
 
-    st.write(f"交易紀錄: {trade_record}")
     st.write(f"損益: {profit}")
     st.write(f"總損益: {total_profit}")
     st.write(f"勝率: {win_rate * 100:.2f}%")
