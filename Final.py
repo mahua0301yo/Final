@@ -4,7 +4,6 @@ import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as stc
 import plotly.graph_objs as go
-from plotly.subplots import make_subplots
 import datetime
 import numpy as np
 
@@ -73,6 +72,7 @@ class OrderRecord:
     def __init__(self):
         self.trades = []
         self.open_interest = 0
+        self.profits = []
 
     def Order(self, action, product, time, price, quantity):
         self.trades.append({
@@ -93,12 +93,45 @@ class OrderRecord:
             'quantity': -quantity
         })
         self.open_interest -= quantity if action == 'Sell' else -quantity
+        # 計算損益
+        last_trade = self.trades[-2]
+        if last_trade['action'] == 'Buy':
+            self.profits.append(price - last_trade['price'])
+        elif last_trade['action'] == 'Sell':
+            self.profits.append(last_trade['price'] - price)
 
     def GetOpenInterest(self):
         return self.open_interest
 
     def GetTradeRecord(self):
         return self.trades
+
+    def GetProfit(self):
+        return self.profits
+
+    def GetTotalProfit(self):
+        return sum(self.profits)
+
+    def GetWinRate(self):
+        wins = [p for p in self.profits if p > 0]
+        return len(wins) / len(self.profits) if self.profits else 0
+
+    def GetAccLoss(self):
+        acc_loss = 0
+        max_acc_loss = 0
+        for p in self.profits:
+            if p < 0:
+                acc_loss += p
+                if acc_loss < max_acc_loss:
+                    max_acc_loss = acc_loss
+            else:
+                acc_loss = 0
+        return max_acc_loss
+
+    def GetMDD(self):
+        equity_curve = np.cumsum(self.profits)
+        drawdowns = equity_curve - np.maximum.accumulate(equity_curve)
+        return drawdowns.min() if drawdowns.size > 0 else 0
 
 # 建立交易策略
 def trading_strategy(stock, long_ma_period, short_ma_period, move_stop_loss):
@@ -147,80 +180,4 @@ def plot_stock_data(stock, order_record):
     fig_kline.add_trace(go.Scatter(x=stock['Date'], y=stock['Upper_Band'], line=dict(color='red', width=1), name='上軌'))
     fig_kline.add_trace(go.Scatter(x=stock['Date'], y=stock['Lower_Band'], line=dict(color='green', width=1), name='下軌'))
 
-    # 繪製交易信號
-    for trade in order_record.GetTradeRecord():
-        if trade['action'] == 'Buy':
-            fig_kline.add_trace(go.Scatter(x=[trade['time']], y=[trade['price']], mode='markers', marker=dict(color='green', symbol='triangle-up', size=10), name='買入'))
-        elif trade['action'] == 'Sell':
-            fig_kline.add_trace(go.Scatter(x=[trade['time']], y=[trade['price']], mode='markers', marker=dict(color='red', symbol='triangle-down', size=10), name='賣出'))
-
-    fig_kline.update_layout(title='股票價格與布林通道',
-                            xaxis_rangeslider_visible=False)
-    st.plotly_chart(fig_kline, use_container_width=True)
-
-    # 繪製MACD
-    fig_macd = go.Figure()
-    fig_macd.add_trace(go.Scatter(x=stock['Date'], y=stock['MACD'], line=dict(color='blue', width=1), name='MACD'))
-    fig_macd.add_trace(go.Scatter(x=stock['Date'], y=stock['Signal_Line'], line=dict(color='red', width=1), name='信號線'))
-    fig_macd.add_trace(go.Bar(x=stock['Date'], y=stock['MACD'] - stock['Signal_Line'], name='柱狀圖'))
-
-    fig_macd.update_layout(title='MACD',
-                           xaxis_rangeslider_visible=False)
-    st.plotly_chart(fig_macd, use_container_width=True)
-
-    # 繪製KDJ
-    fig_kdj = go.Figure()
-    fig_kdj.add_trace(go.Scatter(x=stock['Date'], y=stock['K'], line=dict(color='blue', width=1), name='K'))
-    fig_kdj.add_trace(go.Scatter(x=stock['Date'], y=stock['D'], line=dict(color='orange', width=1), name='D'))
-    fig_kdj.add_trace(go.Scatter(x=stock['Date'], y=stock['J'], line=dict(color='green', width=1), name='J'))
-
-    fig_kdj.update_layout(title='KDJ',
-                          xaxis_rangeslider_visible=False)
-    st.plotly_chart(fig_kdj, use_container_width=True)
-
-# 主函數
-def main():
-    display_header()
-
-    # 選擇資料區間
-    st.subheader("選擇資料區間")
-    start_date = st.date_input('選擇開始日期', datetime.date(2015, 1, 1))
-    end_date = st.date_input('選擇結束日期', datetime.date(2100, 12, 31))
-    stockname = st.text_input('請輸入股票代號 (例: 2330.TW)', '2330.TW')
-
-    # 選擇K線時間長
-    interval_options = {
-        "1天": "1d",
-        "1星期": "1wk",
-        "1個月": "1mo",
-        "3個月": "3mo"
-    }
-    interval_label = st.selectbox("選擇K線時間長", list(interval_options.keys()))
-    interval = interval_options[interval_label]
-
-    # 輸入布林通道的週期和標準差倍數
-    bollinger_period = st.number_input('請輸入布林通道週期', min_value=1, max_value=100, value=20, step=1)
-    bollinger_std = st.number_input('請輸入布林通道標準差倍數', min_value=0.1, max_value=10.0, value=2.0, step=0.1)
-
-    # 輸入MACD的參數
-    macd_short_period = st.number_input('請輸入MACD短期EMA週期', min_value=1, max_value=50, value=12, step=1)
-    macd_long_period = st.number_input('請輸入MACD長期EMA週期', min_value=1, max_value=50, value=26, step=1)
-    macd_signal_period = st.number_input('請輸入MACD信號線週期', min_value=1, max_value=50, value=9, step=1)
-
-    # 輸入移動停損點數和均線參數
-    long_ma_period = st.number_input('請輸入長期均線週期', min_value=1, max_value=100, value=20, step=1)
-    short_ma_period = st.number_input('請輸入短期均線週期', min_value=1, max_value=100, value=10, step=1)
-    move_stop_loss = st.number_input('請輸入移動停損點數', min_value=1, max_value=100, value=30, step=1)
-
-    # 驗證日期輸入
-    if start_date > end_date:
-        st.error("開始日期不能晚於結束日期")
-    else:
-        stock = load_stock_data(stockname, start_date, end_date, interval)
-        if stock is not None:
-            stock = calculate_indicators(stock, bollinger_period, bollinger_std, macd_short_period, macd_long_period, macd_signal_period)
-            order_record = trading_strategy(stock, long_ma_period, short_ma_period, move_stop_loss)
-            plot_stock_data(stock, order_record)
-
-if __name__ == "__main__":
-    main()
+    # 繪
