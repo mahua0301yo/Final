@@ -1,4 +1,3 @@
-User
 # 載入必要模組
 import yfinance as yf
 import pandas as pd
