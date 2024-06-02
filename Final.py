@@ -133,55 +133,53 @@ class OrderRecord:
         drawdowns = equity_curve - np.maximum.accumulate(equity_curve)
         return drawdowns.min() if drawdowns.size > 0 else 0
 
-# 建立交易策略
-def trading_strategy(stock, long_ma_period, short_ma_period, move_stop_loss):
-    stock['MA_long'] = stock['Close'].rolling(window=long_ma_period).mean()
-    stock['MA_short'] = stock['Close'].rolling(window=short_ma_period).mean()
-
+# 建立KDJ交易策略
+def kdj_strategy(stock):
     order_record = OrderRecord()
-    order_price = None
-    stop_loss_point = None
-
     for n in range(1, len(stock)):
-        if not np.isnan(stock['MA_long'][n-1]):
-            # 無未平倉部位
-            if order_record.GetOpenInterest() == 0:
-                # 多單進場
-                if stock['MA_short'][n-1] <= stock['MA_long'][n-1] and stock['MA_short'][n] > stock['MA_long'][n]:
-                    order_record.Order('Buy', stock['Date'][n+1], stock['Date'][n+1], stock['Open'][n+1], 1)
-                    order_price = stock['Open'][n+1]
-                    stop_loss_point = order_price - move_stop_loss
-                # 空單進場
-                elif stock['MA_short'][n-1] >= stock['MA_long'][n-1] and stock['MA_short'][n] < stock['MA_long'][n]:
-                    order_record.Order('Sell', stock['Date'][n+1], stock['Date'][n+1], stock['Open'][n+1], 1)
-                    order_price = stock['Open'][n+1]
-                    stop_loss_point = order_price + move_stop_loss
-            # 多單出場
-            elif order_record.GetOpenInterest() == 1:
-                if stock['Close'][n] - move_stop_loss > stop_loss_point:
-                    stop_loss_point = stock['Close'][n] - move_stop_loss
-                elif stock['Close'][n] < stop_loss_point:
-                    order_record.Cover('Sell', stock['Date'][n+1], stock['Date'][n+1], stock['Open'][n+1], 1)
-            # 空單出場
-            elif order_record.GetOpenInterest() == -1:
-                if stock['Close'][n] + move_stop_loss < stop_loss_point:
-                    stop_loss_point = stock['Close'][n] + move_stop_loss
-                elif stock['Close'][n] > stop_loss_point:
-                    order_record.Cover('Buy', stock['Date'][n+1], stock['Date'][n+1], stock['Open'][n+1], 1)
+        # 黃金交叉: K值從下往上穿過D值
+        if stock['K'][n-1] < stock['D'][n-1] and stock['K'][n] > stock['D'][n]:
+            order_record.Order('Buy', stock['Date'][n], stock['Date'][n], stock['Open'][n], 1)
+        # 死亡交叉: K值從上往下穿過D值
+        elif stock['K'][n-1] > stock['D'][n-1] and stock['K'][n] < stock['D'][n]:
+            order_record.Cover('Sell', stock['Date'][n], stock['Date'][n], stock['Open'][n], 1)
+    return order_record
 
+# 建立布林通道交易策略
+def bollinger_strategy(stock):
+    order_record = OrderRecord()
+    for n in range(1, len(stock)):
+        # 突破上軌: 賣出信號
+        if stock['Close'][n-1] <= stock['Upper_Band'][n-1] and stock['Close'][n] > stock['Upper_Band'][n]:
+            order_record.Cover('Sell', stock['Date'][n], stock['Date'][n], stock['Open'][n], 1)
+        # 突破下軌: 買入信號
+        elif stock['Close'][n-1] >= stock['Lower_Band'][n-1] and stock['Close'][n] < stock['Lower_Band'][n]:
+            order_record.Order('Buy', stock['Date'][n], stock['Date'][n], stock['Open'][n], 1)
+    return order_record
+
+# 建立MACD交易策略
+def macd_strategy(stock):
+    order_record = OrderRecord()
+    for n in range(1, len(stock)):
+        # 黃金交叉: MACD從下往上穿過信號線
+        if stock['MACD'][n-1] < stock['Signal_Line'][n-1] and stock['MACD'][n] > stock['Signal_Line'][n]:
+            order_record.Order('Buy', stock['Date'][n], stock['Date'][n], stock['Open'][n], 1)
+        # 死亡交叉: MACD從上往下穿過信號線
+        elif stock['MACD'][n-1] > stock['Signal_Line'][n-1] and stock['MACD'][n] < stock['Signal_Line'][n]:
+            order_record.Cover('Sell', stock['Date'][n], stock['Date'][n], stock['Open'][n], 1)
     return order_record
 
 # 繪製股票數據和技術指標
-def plot_stock_data(stock, order_record):
+def plot_stock_data(stock, kdj_record, bollinger_record, macd_record):
     # 繪製K線圖與布林通道
     fig_kline = go.Figure()
     fig_kline.add_trace(go.Candlestick(x=stock['Date'], open=stock['Open'], high=stock['High'], low=stock['Low'], close=stock['Close'], name='價格'))
     fig_kline.add_trace(go.Scatter(x=stock['Date'], y=stock['Middle_Band'], line=dict(color='blue', width=1), name='中軌'))
     fig_kline.add_trace(go.Scatter(x=stock['Date'], y=stock['Upper_Band'], line=dict(color='red', width=1), name='上軌'))
-    fig_kline.add_trace(go.Scatter(x=stock['Date'], y=stock['Lower_Band'], line=dict(color='green', width=1), name='下軌'))
+    fig_kline.add_trace(go.Scatter(x=stock['Date'], y=stock['Lower_Band'], line=dict(color='red', width=1), name='下軌'))
 
-    # 繪製買賣點
-    for trade in order_record.GetTradeRecord():
+    # 繪製KDJ交易點
+    for trade in kdj_record.GetTradeRecord():
         color = 'green' if trade['action'] == 'Buy' else 'red'
         symbol = 'arrow-up' if trade['action'] == 'Buy' else 'arrow-down'
         fig_kline.add_trace(go.Scatter(
@@ -189,10 +187,34 @@ def plot_stock_data(stock, order_record):
             y=[trade['price']],
             mode='markers',
             marker=dict(color=color, size=15, symbol=symbol),
-            name=trade['action']
+            name=f"KDJ {trade['action']}"
         ))
 
-    fig_kline.update_layout(title='K線圖與布林通道', xaxis_rangeslider_visible=False)
+    # 繪製布林通道交易點
+    for trade in bollinger_record.GetTradeRecord():
+        color = 'green' if trade['action'] == 'Buy' else 'red'
+        symbol = 'arrow-up' if trade['action'] == 'Buy' else 'arrow-down'
+        fig_kline.add_trace(go.Scatter(
+            x=[trade['time']],
+            y=[trade['price']],
+            mode='markers',
+            marker=dict(color=color, size=15, symbol=symbol),
+            name=f"Bollinger {trade['action']}"
+        ))
+
+    # 繪製MACD交易點
+    for trade in macd_record.GetTradeRecord():
+        color = 'green' if trade['action'] == 'Buy' else 'red'
+        symbol = 'arrow-up' if trade['action'] == 'Buy' else 'arrow-down'
+        fig_kline.add_trace(go.Scatter(
+            x=[trade['time']],
+            y=[trade['price']],
+            mode='markers',
+            marker=dict(color=color, size=15, symbol=symbol),
+            name=f"MACD {trade['action']}"
+        ))
+
+    fig_kline.update_layout(title='K線圖與技術指標', xaxis_rangeslider_visible=False)
     st.plotly_chart(fig_kline, use_container_width=True)
 
     # 繪製MACD
@@ -215,18 +237,47 @@ def plot_stock_data(stock, order_record):
 
     # 計算並顯示績效
     st.subheader("交易績效")
-    trade_record = order_record.GetTradeRecord()
-    profit = order_record.GetProfit()
-    total_profit = order_record.GetTotalProfit()
-    win_rate = order_record.GetWinRate()
-    acc_loss = order_record.GetAccLoss()
-    mdd = order_record.GetMDD()
+    st.write("KDJ策略")
+    kdj_trade_record = kdj_record.GetTradeRecord()
+    kdj_profit = kdj_record.GetProfit()
+    kdj_total_profit = kdj_record.GetTotalProfit()
+    kdj_win_rate = kdj_record.GetWinRate()
+    kdj_acc_loss = kdj_record.GetAccLoss()
+    kdj_mdd = kdj_record.GetMDD()
+    st.write(f"交易紀錄: {kdj_trade_record}")
+    st.write(f"損益: {kdj_profit}")
+    st.write(f"總損益: {kdj_total_profit}")
+    st.write(f"勝率: {kdj_win_rate * 100:.2f}%")
+    st.write(f"最大連續虧損: {kdj_acc_loss}")
+    st.write(f"最大資金回落 (MDD): {kdj_mdd}")
 
-    st.write(f"損益: {profit}")
-    st.write(f"總損益: {total_profit}")
-    st.write(f"勝率: {win_rate * 100:.2f}%")
-    st.write(f"最大連續虧損: {acc_loss}")
-    st.write(f"最大資金回落 (MDD): {mdd}")
+    st.write("布林通道策略")
+    bollinger_trade_record = bollinger_record.GetTradeRecord()
+    bollinger_profit = bollinger_record.GetProfit()
+    bollinger_total_profit = bollinger_record.GetTotalProfit()
+    bollinger_win_rate = bollinger_record.GetWinRate()
+    bollinger_acc_loss = bollinger_record.GetAccLoss()
+    bollinger_mdd = bollinger_record.GetMDD()
+    st.write(f"交易紀錄: {bollinger_trade_record}")
+    st.write(f"損益: {bollinger_profit}")
+    st.write(f"總損益: {bollinger_total_profit}")
+    st.write(f"勝率: {bollinger_win_rate * 100:.2f}%")
+    st.write(f"最大連續虧損: {bollinger_acc_loss}")
+    st.write(f"最大資金回落 (MDD): {bollinger_mdd}")
+
+    st.write("MACD策略")
+    macd_trade_record = macd_record.GetTradeRecord()
+    macd_profit = macd_record.GetProfit()
+    macd_total_profit = macd_record.GetTotalProfit()
+    macd_win_rate = macd_record.GetWinRate()
+    macd_acc_loss = macd_record.GetAccLoss()
+    macd_mdd = macd_record.GetMDD()
+    st.write(f"交易紀錄: {macd_trade_record}")
+    st.write(f"損益: {macd_profit}")
+    st.write(f"總損益: {macd_total_profit}")
+    st.write(f"勝率: {macd_win_rate * 100:.2f}%")
+    st.write(f"最大連續虧損: {macd_acc_loss}")
+    st.write(f"最大資金回落 (MDD): {macd_mdd}")
 
 # 主函數
 def main():
@@ -257,11 +308,6 @@ def main():
     macd_long_period = st.number_input('請輸入MACD長期EMA週期', min_value=1, max_value=50, value=26, step=1)
     macd_signal_period = st.number_input('請輸入MACD信號線週期', min_value=1, max_value=50, value=9, step=1)
 
-    # 輸入移動停損點數和均線參數
-    long_ma_period = st.number_input('請輸入長期均線週期', min_value=1, max_value=100, value=20, step=1)
-    short_ma_period = st.number_input('請輸入短期均線週期', min_value=1, max_value=100, value=10, step=1)
-    move_stop_loss = st.number_input('請輸入移動停損點數', min_value=1, max_value=100, value=30, step=1)
-
     # 驗證日期輸入
     if start_date > end_date:
         st.error("開始日期不能晚於結束日期")
@@ -269,8 +315,10 @@ def main():
         stock = load_stock_data(stockname, start_date, end_date, interval)
         if stock is not None:
             stock = calculate_indicators(stock, bollinger_period, bollinger_std, macd_short_period, macd_long_period, macd_signal_period)
-            order_record = trading_strategy(stock, long_ma_period, short_ma_period, move_stop_loss)
-            plot_stock_data(stock, order_record)
+            kdj_record = kdj_strategy(stock)
+            bollinger_record = bollinger_strategy(stock)
+            macd_record = macd_strategy(stock)
+            plot_stock_data(stock, kdj_record, bollinger_record, macd_record)
 
 if __name__ == "__main__":
     main()
