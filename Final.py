@@ -28,7 +28,7 @@ def load_stock_data(stockname, start_date, end_date):
             st.success("數據讀取成功")
             stock.rename(columns={'Volume': 'amount'}, inplace=True)
             stock.drop(columns=['Adj Close'], inplace=True)
-            stock['Volume'] = (stock['amount'] / stock['Open']).astype(int)
+            stock['Volume'] = (stock['amount'] / (stock['Open']+stock['Close'])/2).astype(int)
             cols = stock.columns.tolist()
             vol_idx = cols.index('Volume')
             amt_idx = cols.index('amount')
