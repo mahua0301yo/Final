@@ -57,24 +57,19 @@ def plot_stock_data(stock, strategy_name):
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True,
                         vertical_spacing=0.02, row_heights=[0.7, 0.3])
 
+    # 添加K线图和MACD指标
     fig.add_trace(go.Candlestick(x=stock['Date'],
                                  open=stock['Open'],
                                  high=stock['High'],
                                  low=stock['Low'],
                                  close=stock['Close'],
                                  name='價格'), row=1, col=1)
-
-    if 'Upper_Band' in stock.columns:
-        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Upper_Band'], line=dict(color='red', width=1), name='上軌'), row=1, col=1)
-    if 'Middle_Band' in stock.columns:
-        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Middle_Band'], line=dict(color='blue', width=1), name='中軌'), row=1, col=1)
-    if 'Lower_Band' in stock.columns:
-        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Lower_Band'], line=dict(color='red', width=1), name='下軌'), row=1, col=1)
     
-    if 'MACD' in stock.columns:
-        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['MACD'], line=dict(color='blue', width=1), name='MACD'), row=1, col=1)
-        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Signal_Line'], line=dict(color='red', width=1), name='信號線'), row=1, col=1)
+    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['MACD'], line=dict(color='blue', width=1), name='MACD'), row=1, col=1)
+    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Signal_Line'], line=dict(color='red', width=1), name='Signal Line'), row=1, col=1)
+    fig.add_trace(go.Bar(x=stock['Date'], y=stock['MACD'] - stock['Signal_Line'], marker_color='grey', name='MACD Histogram'), row=2, col=1)
     
+    # 添加交易量
     fig.add_trace(go.Bar(x=stock['Date'], y=stock['amount'], name='交易量'), row=2, col=1)
 
     fig.update_layout(title=f"{strategy_name}策略 - 股票價格與交易量",
