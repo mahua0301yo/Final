@@ -216,7 +216,7 @@ def main():
     if stock is not None:
         st.subheader(f"股票代號: {stockname}")
 
-        if strategy_name == "Bollinger Bands":
+        if strategy_name == "布林通道":
             stock = calculate_bollinger_bands(stock, period=bollinger_period, std_dev=bollinger_std)
             plot_bollinger_bands(stock)
         elif strategy_name == "KDJ":
