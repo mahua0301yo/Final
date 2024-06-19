@@ -196,7 +196,7 @@ def main():
     interval = interval_options[interval_label]
 
     # 選擇指標和參數
-    strategy_name = st.sidebar.selectbox("選擇指標", ["Bollinger Bands", "KDJ", "RSI", "MACD", "唐奇安通道"])
+    strategy_name = st.sidebar.selectbox("選擇指標", ["布林通道", "KDJ", "RSI", "MACD", "唐奇安通道"])
 
     if strategy_name == "Bollinger Bands":
         bollinger_period = st.sidebar.slider("布林通道週期", min_value=5, max_value=50, value=20, step=1)
