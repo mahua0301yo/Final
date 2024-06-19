@@ -136,7 +136,7 @@ def plot_macd(stock):
     st.plotly_chart(fig_macd)
 
 # 繪製唐奇安通道
-def plot_donchian_channels(stock):
+def plot_donchian_channels(stock, period=20):
     fig_donchian = make_subplots(rows=1, cols=1, shared_xaxes=True,
                                  vertical_spacing=0.02)
 
@@ -178,6 +178,8 @@ def main():
         short_window = st.sidebar.slider("短期EMA窗口", min_value=5, max_value=50, value=12, step=1)
         long_window = st.sidebar.slider("長期EMA窗口", min_value=10, max_value=100, value=26, step=1)
         signal_window = st.sidebar.slider("信號線窗口", min_value=5, max_value=50, value=9, step=1)
+    elif strategy_name == "唐奇安通道":
+        donchian_period = st.sidebar.slider("唐奇安通道週期", min_value=5, max_value=50, value=20, step=1)
 
     stock = load_stock_data(stockname, start_date, end_date, interval)
     if stock is not None:
@@ -197,8 +199,8 @@ def main():
             stock = calculate_macd(stock, short_window=short_window, long_window=long_window, signal_window=signal_window)
             plot_macd(stock)
         elif strategy_name == "唐奇安通道":
-            stock = calculate_donchian_channels(stock, period=20)
-            plot_donchian_channels(stock)
+            stock = calculate_donchian_channels(stock, period=donchian_period)
+            plot_donchian_channels(stock, period=donchian_period)
 
 if __name__ == "__main__":
     main()
