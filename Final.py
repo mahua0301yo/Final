@@ -60,6 +60,11 @@ def calculate_rsi(stock, period=14):
 def plot_stock_data(stock, strategy_name):
     fig = go.Figure()
 
+    # 計算 K 線圖的顯示範圍
+    price_range = (stock['Close'].max() - stock['Close'].min()) * 0.1
+    ymin = stock['Close'].min() - price_range
+    ymax = stock['Close'].max() + price_range
+
     # 繪製 K 線圖
     fig.add_trace(go.Candlestick(
         x=stock['Date'],
@@ -67,7 +72,8 @@ def plot_stock_data(stock, strategy_name):
         high=stock['High'],
         low=stock['Low'],
         close=stock['Close'],
-        name='OHLC'
+        name='OHLC',
+        yaxis='y'  # 使用第一個 y 軸
     ))
 
     if strategy_name == 'Bollinger Bands':
@@ -186,6 +192,10 @@ def plot_stock_data(stock, strategy_name):
         title=f'{strategy_name} Analysis',
         xaxis_title='Date',
         yaxis_title='Price',
+        yaxis=dict(
+            title='Price',
+            range=[ymin, ymax]
+        ),
         yaxis2=dict(
             title='Volume',
             overlaying='y',
@@ -194,6 +204,7 @@ def plot_stock_data(stock, strategy_name):
     )
 
     st.plotly_chart(fig)
+
 
 
 # Streamlit 應用程式
