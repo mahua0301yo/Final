@@ -81,7 +81,7 @@ def plot_bollinger_bands(stock):
     st.plotly_chart(fig)
 
 def plot_kdj(stock):
-    fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.1,
+    fig = make_subplots(rows=1, cols=2, shared_xaxes=True, vertical_spacing=0.1,
                         subplot_titles=("KDJ指標", "KDJ值"))
 
     fig.add_trace(go.Candlestick(x=stock['Date'], open=stock['Open'], high=stock['High'],
