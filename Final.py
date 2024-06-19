@@ -215,7 +215,6 @@ def main():
     stock = load_stock_data(stockname, start_date, end_date, interval)
     if stock is not None:
         st.subheader(f"股票代號: {stockname}")
-        st.write(stock.head())
 
         if strategy_name == "Bollinger Bands":
             stock = calculate_bollinger_bands(stock, period=bollinger_period, std_dev=bollinger_std)
