@@ -188,7 +188,7 @@ def main():
     st.sidebar.subheader("選擇資料區間")
     start_date = st.sidebar.date_input('選擇開始日期', datetime.date(2020, 1, 1))
     end_date = st.sidebar.date_input('選擇結束日期', datetime.date(2023, 1, 1))
-    stockname = st.sidebar.text_input('請輸入股票代號 (例: 2330.TW)', '2330.TW')
+    stockname = st.sidebar.text_input('請輸入股票代號 (例: 2610.TW,國外期貨代號請至Yahoo Finance查詢)', '2610.TW')
 
     # 選擇K線時間長
     interval_options = {"1天": "1d", "1星期": "1wk", "1個月": "1mo"}
