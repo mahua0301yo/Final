@@ -143,68 +143,163 @@ def plot_macd(stock):
     fig_macd = go.Figure()
     fig_macd.add_trace(go.Scatter(x=stock['Date'], y=stock['MACD'], line=dict(color='blue', width=1), name='MACD'))
     fig_macd.add_trace(go.Scatter(x=stock['Date'], y=stock['Signal_Line'], line=dict(color='red', width=1), name='Signal Line'))
-    
+
+    fig_macd.add_trace(go.Bar(x=stock['Date'], y=stock['MACD'] - stock['Signal_Line'], marker_color='grey', name='MACD Histogram'))
+
     fig_macd.update_layout(title='MACD指標',
                            xaxis_title='日期',
                            yaxis_title='數值')
     st.plotly_chart(fig_macd)
 
-# 繪製唐奇安通道指標
-def plot_donchian_channels(stock):
-    plot_stock_data(stock, "唐奇安通道")
+# 策略設計和回測函數
 
-    fig_donchian = go.Figure()
-    fig_donchian.add_trace(go.Scatter(x=stock['Date'], y=stock['Upper_Channel'], line=dict(color='green', width=1), name='唐奇安通道上通道'))
-    fig_donchian.add_trace(go.Scatter(x=stock['Date'], y=stock['Lower_Channel'], line=dict(color='green', width=1), name='唐奇安通道下通道'))
+# 1. 布林通道策略
+def bollinger_band_strategy(stock, period=20, std_dev=2):
+    stock = calculate_bollinger_bands(stock, period=period, std_dev=std_dev)
     
-    fig_donchian.update_layout(title='唐奇安通道指標',
-                               xaxis_title='日期',
-                               yaxis_title='價格')
-    st.plotly_chart(fig_donchian)
+    # 產生交易訊號
+    stock['Buy_Signal'] = (stock['Close'] > stock['Upper_Band']).astype(int)
+    stock['Sell_Signal'] = (stock['Close'] < stock['Lower_Band']).astype(int)
+    
+    # 計算策略回報率和其他績效指標
+    signals, win_rate = calculate_strategy_performance(stock, 'Buy_Signal', 'Sell_Signal')
+    
+    return signals, win_rate
 
+# 2. KDJ策略
+def kdj_strategy(stock, period=14):
+    stock = calculate_kdj(stock, period=period)
+    
+    # 產生交易訊號
+    stock['Buy_Signal'] = (stock['K'] > stock['D']).astype(int)
+    stock['Sell_Signal'] = (stock['K'] < stock['D']).astype(int)
+    
+    # 計算策略回報率和其他績效指標
+    signals, win_rate = calculate_strategy_performance(stock, 'Buy_Signal', 'Sell_Signal')
+    
+    return signals, win_rate
 
-# 回測各指標的策略
-def backtest_strategy(stock, strategy_name):
-    if strategy_name == '布林通道':
-        stock = calculate_bollinger_bands(stock)
-        plot_stock_data(stock, strategy_name)
-    elif strategy_name == 'KDJ':
-        stock = calculate_kdj(stock)
-        plot_kdj(stock)
-    elif strategy_name == 'RSI':
-        stock = calculate_rsi(stock)
-        plot_rsi(stock)
-    elif strategy_name == 'MACD':
-        stock = calculate_macd(stock)
-        plot_macd(stock)
-    elif strategy_name == '唐奇安通道':
-        stock = calculate_donchian_channels(stock)
-        plot_donchian_channels(stock)
-    else:
-        st.error("未知的策略名稱")
+# 3. RSI策略
+def rsi_strategy(stock, period=14):
+    stock = calculate_rsi(stock, period=period)
+    
+    # 產生交易訊號
+    stock['Buy_Signal'] = (stock['RSI'] < 30).astype(int)
+    stock['Sell_Signal'] = (stock['RSI'] > 70).astype(int)
+    
+    # 計算策略回報率和其他績效指標
+    signals, win_rate = calculate_strategy_performance(stock, 'Buy_Signal', 'Sell_Signal')
+    
+    return signals, win_rate
 
+# 4. MACD策略
+def macd_strategy(stock, short_window=12, long_window=26, signal_window=9):
+    stock = calculate_macd(stock, short_window=short_window, long_window=long_window, signal_window=signal_window)
+    
+    # 產生交易訊號
+    stock['Buy_Signal'] = (stock['MACD'] > stock['Signal_Line']).astype(int)
+    stock['Sell_Signal'] = (stock['MACD'] < stock['Signal_Line']).astype(int)
+    
+    # 計算策略回報率和其他績效指標
+    signals, win_rate = calculate_strategy_performance(stock, 'Buy_Signal', 'Sell_Signal')
+    
+    return signals, win_rate
 
-# 主程式碼
+# 5. 唐奇安通道策略
+def donchian_channel_strategy(stock, period=20):
+    stock = calculate_donchian_channels(stock, period=period)
+    
+    # 產生交易訊號
+    stock['Buy_Signal'] = (stock['Close'] > stock['Upper_Channel']).astype(int)
+    stock['Sell_Signal'] = (stock['Close'] < stock['Lower_Channel']).astype(int)
+    
+    # 計算策略回報率和其他績效指標
+    signals, win_rate = calculate_strategy_performance(stock, 'Buy_Signal', 'Sell_Signal')
+    
+    return signals, win_rate
+
+# 計算策略回測績效
+def calculate_strategy_performance(stock, buy_signal_col, sell_signal_col):
+    # 初始化交易訊號為0
+    stock['signal'] = 0
+    
+    # 買入訊號為1，賣出訊號為-1
+    stock.loc[stock[buy_signal_col] == 1, 'signal'] = 1
+    stock.loc[stock[sell_signal_col] == 1, 'signal'] = -1
+    
+    # 計算每日收益率
+    stock['Returns'] = stock['Close'].pct_change()
+    stock['Strategy_Returns'] = stock['Returns'] * stock['signal'].shift(1)
+    
+    # 計算持有期間
+    stock['Trade_Duration'] = stock.index.to_series().diff().dt.days
+    
+    # 計算勝率
+    total_trades = stock[buy_signal_col].sum() + stock[sell_signal_col].sum()
+    win_trades = (stock['Strategy_Returns'] > 0).sum()
+    win_rate = win_trades / total_trades * 100 if total_trades > 0 else 0
+    
+    return stock, win_rate
+
+# Streamlit應用程式主體
 def main():
-    st.title('股票交易策略回測')
+    st.title("股票技術分析工具")
     
-    # 輸入股票代號和日期範圍
-    stockname = st.text_input('輸入股票代號 (例如AAPL):')
-    start_date = st.date_input('選擇開始日期:')
-    end_date = st.date_input('選擇結束日期:')
-    
-    # 選擇回測策略
-    strategies = ['布林通道', 'KDJ', 'RSI', 'MACD', '唐奇安通道']
-    strategy_name = st.selectbox('選擇交易策略:', strategies)
-    
-    if st.button('開始回測'):
-        # 讀取股票數據
-        stock = load_stock_data(stockname, start_date, end_date, '1d')
-        
-        if stock is not None:
-            # 進行回測
-            backtest_strategy(stock, strategy_name)
+    stockname = st.sidebar.text_input("輸入股票代號", value='AAPL')
+    start_date = st.sidebar.date_input("選擇開始日期", value=pd.to_datetime("2020-01-01"))
+    end_date = st.sidebar.date_input("選擇結束日期", value=pd.to_datetime("2023-12-31"))
+    interval = st.sidebar.selectbox("選擇數據頻率", options=['1d', '1wk', '1mo'], index=0)
+    strategy_name = st.sidebar.selectbox("選擇交易策略", options=["Bollinger Bands", "KDJ", "RSI", "MACD", "唐奇安通道"], index=0)
 
+    if strategy_name == "Bollinger Bands":
+        bollinger_period = st.sidebar.slider("布林通道週期", min_value=5, max_value=50, value=20, step=1)
+        bollinger_std = st.sidebar.slider("布林通道標準差倍數", min_value=1.0, max_value=3.0, value=2.0, step=0.1)
+    elif strategy_name == "KDJ":
+        kdj_period = st.sidebar.slider("KDJ週期", min_value=5, max_value=50, value=14, step=1)
+    elif strategy_name == "RSI":
+        rsi_period = st.sidebar.slider("RSI週期", min_value=5, max_value=50, value=14, step=1)
+    elif strategy_name == "MACD":
+        short_window = st.sidebar.slider("短期EMA窗口", min_value=5, max_value=50, value=12, step=1)
+        long_window = st.sidebar.slider("長期EMA窗口", min_value=10, max_value=100, value=26, step=1)
+        signal_window = st.sidebar.slider("信號線窗口", min_value=5, max_value=50, value=9, step=1)
+    elif strategy_name == "唐奇安通道":
+        donchian_period = st.sidebar.slider("唐奇安通道週期", min_value=5, max_value=50, value=20, step=1)
+
+    stock = load_stock_data(stockname, start_date, end_date, interval)
+    if stock is not None:
+        st.subheader(f"股票代號: {stockname}")
+        st.write(stock.head())
+
+        if strategy_name == "Bollinger Bands":
+            signals, win_rate = bollinger_band_strategy(stock, period=bollinger_period, std_dev=bollinger_std)
+            st.write("策略回測績效:")
+            st.write(f"勝率: {win_rate:.2f}%")
+            st.write(signals.head())
+            plot_stock_data(signals, strategy_name)
+        elif strategy_name == "KDJ":
+            signals, win_rate = kdj_strategy(stock, period=kdj_period)
+            st.write("策略回測績效:")
+            st.write(f"勝率: {win_rate:.2f}%")
+            st.write(signals.head())
+            plot_kdj(signals)
+        elif strategy_name == "RSI":
+            signals, win_rate = rsi_strategy(stock, period=rsi_period)
+            st.write("策略回測績效:")
+            st.write(f"勝率: {win_rate:.2f}%")
+            st.write(signals.head())
+            plot_rsi(signals)
+        elif strategy_name == "MACD":
+            signals, win_rate = macd_strategy(stock, short_window=short_window, long_window=long_window, signal_window=signal_window)
+            st.write("策略回測績效:")
+            st.write(f"勝率: {win_rate:.2f}%")
+            st.write(signals.head())
+            plot_macd(signals)
+        elif strategy_name == "唐奇安通道":
+            signals, win_rate = donchian_channel_strategy(stock, period=donchian_period)
+            st.write("策略回測績效:")
+            st.write(f"勝率: {win_rate:.2f}%")
+            st.write(signals.head())
+            plot_stock_data(signals, strategy_name)
 
 if __name__ == '__main__':
     main()
