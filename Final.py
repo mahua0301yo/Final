@@ -65,13 +65,18 @@ def plot_stock_data(stock, strategy_name):
     fig.update_layout(title=f"{strategy_name} 指標圖", xaxis_title='日期', yaxis_title='價格', xaxis_rangeslider_visible=False)
     st.plotly_chart(fig)
 
-# 繪製MACD圖表
+# 繪製MACD圖表，保留K線圖
 def plot_macd(stock):
     fig = go.Figure()
 
+    # K線圖
     fig.add_trace(go.Candlestick(x=stock['Date'], open=stock['Open'], high=stock['High'], low=stock['Low'], close=stock['Close'], name='OHLC'))
+
+    # MACD及信號線
     fig.add_trace(go.Scatter(x=stock['Date'], y=stock['MACD'], line=dict(color='blue', width=1), name='MACD'))
     fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Signal_Line'], line=dict(color='red', width=1), name='Signal Line'))
+
+    # MACD柱狀圖
     fig.add_trace(go.Bar(x=stock['Date'], y=stock['MACD_Histogram'], name='MACD Histogram'))
 
     fig.update_layout(title="MACD 指標圖", xaxis_title='日期', yaxis_title='MACD 值', xaxis_rangeslider_visible=False)
