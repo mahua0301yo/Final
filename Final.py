@@ -77,15 +77,7 @@ def plot_bollinger_bands(stock):
     fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Lower_Band'], mode='lines', name='下軌'), row=1, col=1)
     fig.add_trace(go.Bar(x=stock['Date'], y=stock['Volume'], name='成交量'), row=2, col=1)
 
-    fig.update_xaxes(
-        title_text='日期',
-        rangeslider_visible=False,  # 隱藏範圍滑動條
-        tickformat="%Y-%m-%d",  # 設定日期格式
-        tickangle=-45,  # 調整日期標籤的角度
-        row=1, col=1
-    )
-
-    fig.update_layout(title="布林通道策略圖", yaxis_title='價格')
+    fig.update_layout(title="布林通道策略圖", xaxis_title='日期', yaxis_title='價格')
     st.plotly_chart(fig)
 
 def plot_kdj(stock):
@@ -98,15 +90,7 @@ def plot_kdj(stock):
     fig.add_trace(go.Scatter(x=stock['Date'], y=stock['D'], mode='lines', name='D值'), row=2, col=1)
     fig.add_trace(go.Scatter(x=stock['Date'], y=stock['J'], mode='lines', name='J值'), row=2, col=1)
 
-    fig.update_xaxes(
-        title_text='日期',
-        rangeslider_visible=False,  # 隱藏範圍滑動條
-        tickformat="%Y-%m-%d",
-        tickangle=-45,
-        row=1, col=1
-    )
-
-    fig.update_layout(title="KDJ策略圖", yaxis_title='價格')
+    fig.update_layout(title="KDJ策略圖", xaxis_title='日期', yaxis_title='價格')
     st.plotly_chart(fig)
 
 def plot_rsi(stock):
@@ -117,15 +101,7 @@ def plot_rsi(stock):
                                  low=stock['Low'], close=stock['Close'], name='K線圖'), row=1, col=1)
     fig.add_trace(go.Scatter(x=stock['Date'], y=stock['RSI'], mode='lines', name='RSI'), row=2, col=1)
 
-    fig.update_xaxes(
-        title_text='日期',
-        rangeslider_visible=False,  # 隱藏範圍滑動條
-        tickformat="%Y-%m-%d",
-        tickangle=-45,
-        row=1, col=1
-    )
-
-    fig.update_layout(title="RSI策略圖", yaxis_title='價格')
+    fig.update_layout(title="RSI策略圖", xaxis_title='日期', yaxis_title='價格')
     st.plotly_chart(fig)
 
 def plot_macd(stock):
@@ -138,15 +114,7 @@ def plot_macd(stock):
     fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Signal_Line'], mode='lines', name='Signal Line'), row=2, col=1)
     fig.add_trace(go.Bar(x=stock['Date'], y=stock['Histogram'], name='Histogram'), row=2, col=1)
 
-    fig.update_xaxes(
-        title_text='日期',
-        rangeslider_visible=False,  # 隱藏範圍滑動條
-        tickformat="%Y-%m-%d",
-        tickangle=-45,
-        row=1, col=1
-    )
-
-    fig.update_layout(title="MACD策略圖", yaxis_title='價格')
+    fig.update_layout(title="MACD策略圖", xaxis_title='日期', yaxis_title='價格')
     st.plotly_chart(fig)
 
 def plot_donchian_channels(stock):
@@ -159,58 +127,25 @@ def plot_donchian_channels(stock):
     fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Donchian_Low'], mode='lines', name='低值通道'), row=1, col=1)
     fig.add_trace(go.Bar(x=stock['Date'], y=stock['Volume'], name='成交量'), row=2, col=1)
 
-    fig.update_xaxes(
-        title_text='日期',
-        rangeslider_visible=False,  # 隱藏範圍滑動條
-        tickformat="%Y-%m-%d",
-        tickangle=-45,
-        row=1, col=1
-    )
-
-    fig.update_layout(title="唐奇安通道策略圖", yaxis_title='價格')
+    fig.update_layout(title="唐奇安通道策略圖", xaxis_title='日期', yaxis_title='價格')
     st.plotly_chart(fig)
 
-# Streamlit 應用程式
-st.title('股票分析儀表板')
-
-# 輸入股票代號
-stockname = st.text_input('輸入股票代號', 'AAPL')
-
-# 輸入起始和結束日期
-start_date = st.date_input('開始日期', datetime.date(2020, 1, 1))
-end_date = st.date_input('結束日期', datetime.date(2023, 1, 1))
-
-# 選擇時間間隔
-interval = st.selectbox('選擇時間間隔', ['1d', '1wk', '1mo'])
-
-# 讀取股票數據
-if stockname and start_date and end_date:
-    stock = load_stock_data(stockname, start_date, end_date, interval)
-
-    if stock is not None:
-        # 計算指標
-        stock = calculate_bollinger_bands(stock)
-        stock = calculate_kdj(stock)
-        stock = calculate_rsi(stock)
-        stock = calculate_macd(stock)
-        stock = calculate_donchian_channels(stock)
-
-        # 選擇要繪製的圖表
-        plot_choice = st.selectbox('選擇要繪製的圖表', 
-                                   ['布林通道', 'KDJ指標', 'RSI指標', 'MACD指標', '唐奇安通道'])
-
-        # 根據選擇的圖表調用對應的繪圖函數
-        if plot_choice == '布林通道':
-            plot_bollinger_bands(stock)
-        elif plot_choice == 'KDJ指標':
-            plot_kdj(stock)
-        elif plot_choice == 'RSI指標':
-            plot_rsi(stock)
-        elif plot_choice == 'MACD指標':
-            plot_macd(stock)
-        elif plot_choice == '唐奇安通道':
-            plot_donchian_channels(stock)
-
+# 定義交易策略
+def trading_strategy(stock, strategy_name):
+    # 根據不同的策略進行交易
+    if strategy_name == "Bollinger Bands":
+        stock['Position'] = np.where(stock['Close'] > stock['Upper_Band'], -1, np.nan)
+        stock['Position'] = np.where(stock['Close'] < stock['Lower_Band'], 1, stock['Position'])
+    elif strategy_name == "KDJ":
+        stock['Position'] = np.where(stock['K'] > stock['D'], 1, -1)
+    elif strategy_name == "RSI":
+        stock['Position'] = np.where(stock['RSI'] < 20, 1, np.nan)
+        stock['Position'] = np.where(stock['RSI'] > 80, -1, stock['Position'])
+    elif strategy_name == "MACD":
+        stock['Position'] = np.where(stock['MACD'] > stock['Signal_Line'], 1, -1)
+    elif strategy_name == "唐奇安通道":
+        stock['Position'] = np.where(stock['Close'] > stock['Donchian_High'].shift(1), 1, np.nan)
+        stock['Position'] = np.where(stock['Close'] < stock['Donchian_Low'].shift(1), -1, stock['Position'])
 
     stock['Position'].fillna(method='ffill', inplace=True)
     stock['Position'].fillna(0, inplace=True)
@@ -218,6 +153,7 @@ if stockname and start_date and end_date:
     stock['Strategy_Return'] = stock['Market_Return'] * stock['Position'].shift(1)
     stock['Cumulative_Strategy_Return'] = (1 + stock['Strategy_Return']).cumprod() - 1
 
+    # 計算績效指標
     total_trades = len(stock[(stock['Position'] == 1) | (stock['Position'] == -1)])
     winning_trades = len(stock[(stock['Position'].shift(1) == 1) & (stock['Strategy_Return'] > 0)])
     win_rate = winning_trades / total_trades if total_trades > 0 else 0
@@ -236,18 +172,22 @@ if stockname and start_date and end_date:
 
     return stock
 
+# 主函數
 def main():
     st.title("股票技術指標交易策略")
 
+    # 選擇資料區間
     st.sidebar.subheader("選擇資料區間")
     start_date = st.sidebar.date_input('選擇開始日期', datetime.date(2020, 1, 1))
     end_date = st.sidebar.date_input('選擇結束日期', datetime.date(2023, 1, 1))
     stockname = st.sidebar.text_input('請輸入股票代號 (例: 2330.TW)', '2330.TW')
 
+    # 選擇K線時間長
     interval_options = {"1天": "1d", "1星期": "1wk", "1個月": "1mo"}
     interval_label = st.sidebar.selectbox("選擇K線時間長", list(interval_options.keys()))
     interval = interval_options[interval_label]
 
+    # 選擇指標和參數
     strategy_name = st.sidebar.selectbox("選擇指標", ["Bollinger Bands", "KDJ", "RSI", "MACD", "唐奇安通道"])
 
     if strategy_name == "Bollinger Bands":
