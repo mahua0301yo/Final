@@ -49,6 +49,11 @@ def calculate_rsi(stock, period=14):
     loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
     rs = gain / loss
     stock['RSI'] = 100 - (100 / (1 + rs))
+    
+    # 加入超買超賣區域設定
+    stock['Overbought'] = 80
+    stock['Oversold'] = 20
+    
     return stock
 
 # 定義函數來繪製股票數據和技術指標
@@ -157,6 +162,20 @@ def plot_stock_data(stock, strategy_name):
             mode='lines',
             name='RSI',
             line=dict(color='green')
+        ))
+        fig.add_trace(go.Scatter(
+            x=stock['Date'],
+            y=stock['Overbought'],
+            mode='lines',
+            name='Overbought',
+            line=dict(color='red', dash='dash')
+        ))
+        fig.add_trace(go.Scatter(
+            x=stock['Date'],
+            y=stock['Oversold'],
+            mode='lines',
+            name='Oversold',
+            line=dict(color='blue', dash='dash')
         ))
 
     fig.update_layout(title=f'{strategy_name} Analysis',
