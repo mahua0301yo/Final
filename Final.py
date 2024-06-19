@@ -42,7 +42,7 @@ def calculate_rsi(stock, period=14):
     stock['RSI'] = 100 - (100 / (1 + rs))
     return stock
 
-# 繪製股票數據和布林通道
+# 繪製股票數據和指標圖
 def plot_stock_data(stock, strategy_name):
     fig = go.Figure()
     
@@ -59,7 +59,7 @@ def plot_stock_data(stock, strategy_name):
     if 'Lower_Band' in stock.columns:
         fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Lower_Band'], line=dict(color='red', width=1), name='下軌'))
     
-    fig.update_layout(title=f"{strategy_name}策略 - 股票價格與布林通道",
+    fig.update_layout(title=f"{strategy_name}策略 - 股票價格與指標",
                       xaxis_title='日期',
                       yaxis_title='價格')
     
@@ -75,25 +75,29 @@ def plot_stock_data(stock, strategy_name):
 
 # 繪製KDJ指標
 def plot_kdj(stock):
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['K'], line=dict(color='blue', width=1), name='K'))
-    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['D'], line=dict(color='orange', width=1), name='D'))
-    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['J'], line=dict(color='green', width=1), name='J'))
+    plot_stock_data(stock, "KDJ")
     
-    fig.update_layout(title='KDJ指標',
-                      xaxis_title='日期',
-                      yaxis_title='數值')
-    st.plotly_chart(fig)
+    fig_kdj = go.Figure()
+    fig_kdj.add_trace(go.Scatter(x=stock['Date'], y=stock['K'], line=dict(color='blue', width=1), name='K'))
+    fig_kdj.add_trace(go.Scatter(x=stock['Date'], y=stock['D'], line=dict(color='orange', width=1), name='D'))
+    fig_kdj.add_trace(go.Scatter(x=stock['Date'], y=stock['J'], line=dict(color='green', width=1), name='J'))
+    
+    fig_kdj.update_layout(title='KDJ指標',
+                          xaxis_title='日期',
+                          yaxis_title='數值')
+    st.plotly_chart(fig_kdj)
 
 # 繪製RSI指標
 def plot_rsi(stock):
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['RSI'], line=dict(color='purple', width=1), name='RSI'))
+    plot_stock_data(stock, "RSI")
     
-    fig.update_layout(title='RSI指標',
-                      xaxis_title='日期',
-                      yaxis_title='數值')
-    st.plotly_chart(fig)
+    fig_rsi = go.Figure()
+    fig_rsi.add_trace(go.Scatter(x=stock['Date'], y=stock['RSI'], line=dict(color='purple', width=1), name='RSI'))
+    
+    fig_rsi.update_layout(title='RSI指標',
+                          xaxis_title='日期',
+                          yaxis_title='數值')
+    st.plotly_chart(fig_rsi)
 
 # Streamlit應用程式主體
 def main():
