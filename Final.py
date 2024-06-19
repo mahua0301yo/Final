@@ -71,6 +71,10 @@ def plot_stock_data(stock, strategy_name):
     if 'Lower_Band' in stock.columns:
         fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Lower_Band'], line=dict(color='red', width=1), name='下軌'), row=1, col=1)
     
+    if 'MACD' in stock.columns:
+        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['MACD'], line=dict(color='blue', width=1), name='MACD'), row=1, col=1)
+        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Signal_Line'], line=dict(color='red', width=1), name='信號線'), row=1, col=1)
+    
     fig.add_trace(go.Bar(x=stock['Date'], y=stock['amount'], name='交易量'), row=2, col=1)
 
     fig.update_layout(title=f"{strategy_name}策略 - 股票價格與交易量",
@@ -109,12 +113,21 @@ def plot_rsi(stock):
 def plot_macd(stock):
     plot_stock_data(stock, "MACD")
 
-    fig_macd = go.Figure()
-    fig_macd.add_trace(go.Scatter(x=stock['Date'], y=stock['MACD'], line=dict(color='blue', width=1), name='MACD'))
-    fig_macd.add_trace(go.Scatter(x=stock['Date'], y=stock['Signal_Line'], line=dict(color='red', width=1), name='Signal Line'))
+    fig_macd = make_subplots(rows=2, cols=1, shared_xaxes=True,
+                             vertical_spacing=0.02, row_heights=[0.7, 0.3])
+    
+    fig_macd.add_trace(go.Candlestick(x=stock['Date'],
+                                      open=stock['Open'],
+                                      high=stock['High'],
+                                      low=stock['Low'],
+                                      close=stock['Close'],
+                                      name='價格'), row=1, col=1)
+    
+    fig_macd.add_trace(go.Scatter(x=stock['Date'], y=stock['MACD'], line=dict(color='blue', width=1), name='MACD'), row=1, col=1)
+    fig_macd.add_trace(go.Scatter(x=stock['Date'], y=stock['Signal_Line'], line=dict(color='red', width=1), name='Signal Line'), row=1, col=1)
 
-    fig_macd.add_trace(go.Bar(x=stock['Date'], y=stock['MACD'] - stock['Signal_Line'], marker_color='grey', name='MACD Histogram'))
-
+    fig_macd.add_trace(go.Bar(x=stock['Date'], y=stock['MACD'] - stock['Signal_Line'], marker_color='grey', name='MACD Histogram'), row=2, col=1)
+    
     fig_macd.update_layout(title='MACD指標',
                            xaxis_title='日期',
                            yaxis_title='數值')
@@ -138,9 +151,9 @@ def main():
     elif strategy_name == "RSI":
         rsi_period = st.sidebar.slider("RSI週期", min_value=5, max_value=50, value=14, step=1)
     elif strategy_name == "MACD":
-        short_window = st.sidebar.slider("短期EMA窗口", min_value=5, max_value=50, value=12, step=1)
-        long_window = st.sidebar.slider("長期EMA窗口", min_value=10, max_value=100, value=26, step=1)
-        signal_window = st.sidebar.slider("信號線窗口", min_value=5, max_value=50, value=9, step=1)
+        short_window = st.sidebar.slider("MACD短期均線", min_value=5, max_value=50, value=12, step=1)
+        long_window = st.sidebar.slider("MACD長期均線", min_value=5, max_value=50, value=26, step=1)
+        signal_window = st.sidebar.slider("MACD信號線", min_value=5, max_value=50, value=9, step=1)
 
     stock = load_stock_data(stockname, start_date, end_date, interval)
     if stock is not None:
