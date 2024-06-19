@@ -77,7 +77,8 @@ def plot_bollinger_bands(stock):
     fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Lower_Band'], mode='lines', name='下軌'), row=1, col=1)
     fig.add_trace(go.Bar(x=stock['Date'], y=stock['Volume'], name='成交量'), row=2, col=1)
 
-    fig.update_layout(title="布林通道策略圖", xaxis_title='日期', yaxis_title='價格')
+    fig.update_layout(title="布林通道策略圖", xaxis_title='日期', yaxis_title='價格',
+                      dragmode='pan', editable=False)
     st.plotly_chart(fig)
 
 def plot_kdj(stock):
@@ -90,7 +91,8 @@ def plot_kdj(stock):
     fig.add_trace(go.Scatter(x=stock['Date'], y=stock['D'], mode='lines', name='D值'), row=2, col=1)
     fig.add_trace(go.Scatter(x=stock['Date'], y=stock['J'], mode='lines', name='J值'), row=2, col=1)
 
-    fig.update_layout(title="KDJ策略圖", xaxis_title='日期', yaxis_title='價格')
+    fig.update_layout(title="KDJ策略圖", xaxis_title='日期', yaxis_title='價格',
+                      dragmode='pan', editable=False)
     st.plotly_chart(fig)
 
 def plot_rsi(stock):
@@ -101,7 +103,8 @@ def plot_rsi(stock):
                                  low=stock['Low'], close=stock['Close'], name='K線圖'), row=1, col=1)
     fig.add_trace(go.Scatter(x=stock['Date'], y=stock['RSI'], mode='lines', name='RSI'), row=2, col=1)
 
-    fig.update_layout(title="RSI策略圖", xaxis_title='日期', yaxis_title='價格')
+    fig.update_layout(title="RSI策略圖", xaxis_title='日期', yaxis_title='價格',
+                      dragmode='pan', editable=False)
     st.plotly_chart(fig)
 
 def plot_macd(stock):
@@ -114,7 +117,8 @@ def plot_macd(stock):
     fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Signal_Line'], mode='lines', name='Signal Line'), row=2, col=1)
     fig.add_trace(go.Bar(x=stock['Date'], y=stock['Histogram'], name='Histogram'), row=2, col=1)
 
-    fig.update_layout(title="MACD策略圖", xaxis_title='日期', yaxis_title='價格')
+    fig.update_layout(title="MACD策略圖", xaxis_title='日期', yaxis_title='價格',
+                      dragmode='pan', editable=False)
     st.plotly_chart(fig)
 
 def plot_donchian_channels(stock):
@@ -127,7 +131,8 @@ def plot_donchian_channels(stock):
     fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Donchian_Low'], mode='lines', name='低值通道'), row=1, col=1)
     fig.add_trace(go.Bar(x=stock['Date'], y=stock['Volume'], name='成交量'), row=2, col=1)
 
-    fig.update_layout(title="唐奇安通道策略圖", xaxis_title='日期', yaxis_title='價格')
+    fig.update_layout(title="唐奇安通道策略圖", xaxis_title='日期', yaxis_title='價格',
+                      dragmode='pan', editable=False)
     st.plotly_chart(fig)
 
 # 定義交易策略
