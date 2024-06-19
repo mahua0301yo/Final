@@ -57,13 +57,27 @@ def calculate_indicators(stock, bollinger_period, bollinger_std, macd_short_peri
     stock['Lower_Band'] = stock['Middle_Band'] - bollinger_std * stock['Close'].rolling(window=bollinger_period).std()
 
     # 計算MACD
-    stock['EMA12'] = stock['Close'].ewm(span=macd_short_period).mean()
-    stock['EMA26'] = stock['Close'].ewm(span=macd_long_period).mean()
+    if macd_short_period >= 1:
+        stock['EMA12'] = stock['Close'].ewm(span=macd_short_period).mean()
+    else:
+        raise ValueError("MACD短期EMA週期（macd_short_period）必須大於等於1")
+
+    if macd_long_period >= 1:
+        stock['EMA26'] = stock['Close'].ewm(span=macd_long_period).mean()
+    else:
+        raise ValueError("MACD長期EMA週期（macd_long_period）必須大於等於1")
+
     stock['MACD'] = stock['EMA12'] - stock['EMA26']
-    stock['MACD_Signal'] = stock['MACD'].ewm(span=macd_signal_period).mean()
+
+    if macd_signal_period >= 1:
+        stock['MACD_Signal'] = stock['MACD'].ewm(span=macd_signal_period).mean()
+    else:
+        raise ValueError("MACD信號線週期（macd_signal_period）必須大於等於1")
+
     stock['MACD_Hist'] = stock['MACD'] - stock['MACD_Signal']
     
     return stock
+
 
 # 定義交易策略函數
 def kdj_strategy(stock):
