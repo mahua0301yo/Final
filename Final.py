@@ -1,4 +1,3 @@
-# 載入必要模組
 import yfinance as yf
 import pandas as pd
 import streamlit as st
@@ -7,7 +6,7 @@ from plotly.subplots import make_subplots
 import numpy as np
 import datetime
 
-# 定義函數來讀取股票數據
+# 函數來讀取股票數據
 def load_stock_data(stockname, start_date, end_date, interval):
     stock = yf.download(stockname, start=start_date, end=end_date, interval=interval)
     if stock.empty:
@@ -19,14 +18,14 @@ def load_stock_data(stockname, start_date, end_date, interval):
     stock.reset_index(inplace=True)
     return stock
 
-# 定義函數來計算布林通道指標
+# 函數來計算布林通道指標
 def calculate_bollinger_bands(stock, period=20, std_dev=2):
     stock['Middle_Band'] = stock['Close'].rolling(window=period).mean()
     stock['Upper_Band'] = stock['Middle_Band'] + std_dev * stock['Close'].rolling(window=period).std()
     stock['Lower_Band'] = stock['Middle_Band'] - std_dev * stock['Close'].rolling(window=period).std()
     return stock
 
-# 定義函數來計算KDJ指標
+# 函數來計算KDJ指標
 def calculate_kdj(stock, period=14):
     low_min = stock['Low'].rolling(window=period).min()
     high_max = stock['High'].rolling(window=period).max()
@@ -36,7 +35,7 @@ def calculate_kdj(stock, period=14):
     stock['J'] = 3 * stock['K'] - 2 * stock['D']
     return stock
 
-# 定義函數來計算RSI指標
+# 函數來計算RSI指標
 def calculate_rsi(stock, period=14):
     delta = stock['Close'].diff()
     gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
@@ -50,7 +49,7 @@ def calculate_rsi(stock, period=14):
     
     return stock
 
-# 定義函數來計算MACD指標
+# 函數來計算MACD指標
 def calculate_macd(stock, short_window=12, long_window=26, signal_window=9):
     stock['EMA_short'] = stock['Close'].ewm(span=short_window, adjust=False).mean()
     stock['EMA_long'] = stock['Close'].ewm(span=long_window, adjust=False).mean()
@@ -59,13 +58,13 @@ def calculate_macd(stock, short_window=12, long_window=26, signal_window=9):
     stock['Histogram'] = stock['MACD'] - stock['Signal_Line']
     return stock
 
-# 定義函數來計算唐奇安通道指標
+# 函數來計算唐奇安通道指標
 def calculate_donchian_channels(stock, period=20):
     stock['Donchian_High'] = stock['High'].rolling(window=period).max()
     stock['Donchian_Low'] = stock['Low'].rolling(window=period).min()
     return stock
 
-# 定義單獨的繪圖函數
+# 函數來繪製布林通道圖
 def plot_bollinger_bands(stock):
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.1,
                         subplot_titles=("布林通道", "成交量"))
@@ -80,8 +79,9 @@ def plot_bollinger_bands(stock):
     fig.update_layout(title="布林通道策略圖", xaxis_title='日期', yaxis_title='價格')
     st.plotly_chart(fig)
 
+# 函數來繪製KDJ圖
 def plot_kdj(stock):
-    fig = make_subplots(rows=2, cols=2, shared_xaxes=True, vertical_spacing=0.1,
+    fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.1,
                         subplot_titles=("KDJ指標", "KDJ值"))
 
     fig.add_trace(go.Candlestick(x=stock['Date'], open=stock['Open'], high=stock['High'],
@@ -93,6 +93,7 @@ def plot_kdj(stock):
     fig.update_layout(title="KDJ策略圖", xaxis_title='日期', yaxis_title='價格')
     st.plotly_chart(fig)
 
+# 函數來繪製RSI圖
 def plot_rsi(stock):
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.1,
                         subplot_titles=("RSI指標", "RSI值"))
@@ -104,6 +105,7 @@ def plot_rsi(stock):
     fig.update_layout(title="RSI策略圖", xaxis_title='日期', yaxis_title='價格')
     st.plotly_chart(fig)
 
+# 函數來繪製MACD圖
 def plot_macd(stock):
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.1,
                         subplot_titles=("MACD指標", "MACD值"))
@@ -117,6 +119,7 @@ def plot_macd(stock):
     fig.update_layout(title="MACD策略圖", xaxis_title='日期', yaxis_title='價格')
     st.plotly_chart(fig)
 
+# 函數來繪製唐奇安通道圖
 def plot_donchian_channels(stock):
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.1,
                         subplot_titles=("唐奇安通道", "成交量"))
@@ -130,9 +133,8 @@ def plot_donchian_channels(stock):
     fig.update_layout(title="唐奇安通道策略圖", xaxis_title='日期', yaxis_title='價格')
     st.plotly_chart(fig)
 
-# 定義交易策略
+# 函數來計算交易策略
 def trading_strategy(stock, strategy_name):
-    # 根據不同的策略進行交易
     if strategy_name == "Bollinger Bands":
         stock['Position'] = np.where(stock['Close'] > stock['Upper_Band'], -1, np.nan)
         stock['Position'] = np.where(stock['Close'] < stock['Lower_Band'], 1, stock['Position'])
