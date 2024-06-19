@@ -89,10 +89,11 @@ def calculate_performance(order_record):
     cash = initial_cash
     position = 0
     max_drawdown = 0
-    max_drawdown_duration = 0
     drawdown_duration = 0
     peak_value = initial_cash
     trades = []
+    consecutive_losses = 0
+    max_consecutive_loss = 0
     
     for order in order_record:
         action, date, price = order
@@ -102,7 +103,8 @@ def calculate_performance(order_record):
         elif action == 'Sell':
             cash = position * price
             position = 0
-            trades.append(cash - initial_cash)
+            profit = cash - initial_cash
+            trades.append(profit)
             if cash > peak_value:
                 peak_value = cash
                 drawdown_duration = 0
@@ -112,11 +114,15 @@ def calculate_performance(order_record):
                     drawdown = (peak_value - cash) / peak_value
                     if drawdown > max_drawdown:
                         max_drawdown = drawdown
-                        max_drawdown_duration = drawdown_duration
+            if profit > 0:
+                consecutive_losses = 0
+            else:
+                consecutive_losses += 1
+                if consecutive_losses > max_consecutive_loss:
+                    max_consecutive_loss = consecutive_losses
     
     total_profit = cash - initial_cash
     win_rate = sum(1 for trade in trades if trade > 0) / len(trades) if trades else 0
-    max_consecutive_loss = max((sum(1 for _ in group) for key, group in groupby(trades) if key <= 0), default=0)
     max_drawdown = max_drawdown * 100  # Convert to percentage
     return_rate = (total_profit / initial_cash) * 100  # Convert to percentage
     
