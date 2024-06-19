@@ -76,10 +76,7 @@ def plot_macd(stock):
     fig.add_trace(go.Scatter(x=stock['Date'], y=stock['MACD'], line=dict(color='blue', width=1), name='MACD'))
     fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Signal_Line'], line=dict(color='red', width=1), name='Signal Line'))
 
-    # MACD柱狀圖
-    fig.add_trace(go.Bar(x=stock['Date'], y=stock['MACD_Histogram'], name='MACD Histogram'))
-
-    fig.update_layout(title="MACD 指標圖", xaxis_title='日期', yaxis_title='MACD 值', xaxis_rangeslider_visible=False)
+    fig.update_layout(title="MACD 指標圖", xaxis_title='日期', yaxis_title='價格', xaxis_rangeslider_visible=False)
     st.plotly_chart(fig)
 
 # 繪製KDJ圖表
@@ -128,13 +125,11 @@ def main():
     elif strategy_name == "RSI":
         rsi_period = st.sidebar.slider("RSI週期", min_value=5, max_value=50, value=14, step=1)
 
-    # 讀取股票數據
     stock = load_stock_data(stockname, start_date, end_date, interval)
     if stock is not None:
         st.subheader(f"股票代號: {stockname}")
         st.write(stock.head())
 
-        # 計算技術指標並繪圖
         if strategy_name == "Bollinger Bands":
             stock = calculate_bollinger_bands(stock, period=bollinger_period, std_dev=bollinger_std)
             plot_stock_data(stock, strategy_name)
