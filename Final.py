@@ -72,13 +72,6 @@ def plot_stock_data(stock, strategy_name):
         fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Middle_Band'], line=dict(color='blue', width=1), name='中軌'), row=1, col=1)
     if 'Lower_Band' in stock.columns:
         fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Lower_Band'], line=dict(color='red', width=1), name='下軌'), row=1, col=1)
-    
-    if 'MACD' in stock.columns:
-        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['MACD'], line=dict(color='purple', width=1), name='MACD'), row=1, col=1)
-    if 'MACD_Signal' in stock.columns:
-        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['MACD_Signal'], line=dict(color='orange', width=1), name='MACD Signal'), row=1, col=1)
-    if 'MACD_Histogram' in stock.columns:
-        fig.add_trace(go.Bar(x=stock['Date'], y=stock['MACD_Histogram'], name='MACD Histogram'), row=1, col=1)
 
     fig.add_trace(go.Bar(x=stock['Date'], y=stock['amount'], name='交易量'), row=2, col=1)
 
@@ -88,30 +81,71 @@ def plot_stock_data(stock, strategy_name):
 
     st.plotly_chart(fig)
 
+# 繪製MACD指標
+def plot_macd(stock):
+    fig_macd = make_subplots(rows=2, cols=1, shared_xaxes=True,
+                             vertical_spacing=0.02, row_heights=[0.7, 0.3])
+
+    fig_macd.add_trace(go.Candlestick(x=stock['Date'],
+                                      open=stock['Open'],
+                                      high=stock['High'],
+                                      low=stock['Low'],
+                                      close=stock['Close'],
+                                      name='價格'), row=1, col=1)
+
+    if 'MACD' in stock.columns:
+        fig_macd.add_trace(go.Scatter(x=stock['Date'], y=stock['MACD'], line=dict(color='purple', width=1), name='MACD'), row=1, col=1)
+    if 'MACD_Signal' in stock.columns:
+        fig_macd.add_trace(go.Scatter(x=stock['Date'], y=stock['MACD_Signal'], line=dict(color='orange', width=1), name='MACD Signal'), row=1, col=1)
+    if 'MACD_Histogram' in stock.columns:
+        fig_macd.add_trace(go.Bar(x=stock['Date'], y=stock['MACD_Histogram'], name='MACD Histogram'), row=2, col=1)
+
+    fig_macd.update_layout(title='MACD指標',
+                           xaxis_title='日期',
+                           yaxis_title='數值')
+
+    st.plotly_chart(fig_macd)
+
 # 繪製KDJ指標
 def plot_kdj(stock):
-    plot_stock_data(stock, "KDJ")
+    fig_kdj = make_subplots(rows=2, cols=1, shared_xaxes=True,
+                            vertical_spacing=0.02, row_heights=[0.7, 0.3])
 
-    fig_kdj = go.Figure()
-    fig_kdj.add_trace(go.Scatter(x=stock['Date'], y=stock['K'], line=dict(color='blue', width=1), name='K'))
-    fig_kdj.add_trace(go.Scatter(x=stock['Date'], y=stock['D'], line=dict(color='orange', width=1), name='D'))
-    fig_kdj.add_trace(go.Scatter(x=stock['Date'], y=stock['J'], line=dict(color='green', width=1), name='J'))
-    
+    fig_kdj.add_trace(go.Candlestick(x=stock['Date'],
+                                     open=stock['Open'],
+                                     high=stock['High'],
+                                     low=stock['Low'],
+                                     close=stock['Close'],
+                                     name='價格'), row=1, col=1)
+
+    fig_kdj.add_trace(go.Scatter(x=stock['Date'], y=stock['K'], line=dict(color='blue', width=1), name='K'), row=1, col=1)
+    fig_kdj.add_trace(go.Scatter(x=stock['Date'], y=stock['D'], line=dict(color='orange', width=1), name='D'), row=1, col=1)
+    fig_kdj.add_trace(go.Scatter(x=stock['Date'], y=stock['J'], line=dict(color='green', width=1), name='J'), row=1, col=1)
+
     fig_kdj.update_layout(title='KDJ指標',
                           xaxis_title='日期',
                           yaxis_title='數值')
+
     st.plotly_chart(fig_kdj)
 
 # 繪製RSI指標
 def plot_rsi(stock):
-    plot_stock_data(stock, "RSI")
+    fig_rsi = make_subplots(rows=2, cols=1, shared_xaxes=True,
+                            vertical_spacing=0.02, row_heights=[0.7, 0.3])
 
-    fig_rsi = go.Figure()
-    fig_rsi.add_trace(go.Scatter(x=stock['Date'], y=stock['RSI'], line=dict(color='purple', width=1), name='RSI'))
-    
+    fig_rsi.add_trace(go.Candlestick(x=stock['Date'],
+                                     open=stock['Open'],
+                                     high=stock['High'],
+                                     low=stock['Low'],
+                                     close=stock['Close'],
+                                     name='價格'), row=1, col=1)
+
+    fig_rsi.add_trace(go.Scatter(x=stock['Date'], y=stock['RSI'], line=dict(color='purple', width=1), name='RSI'), row=1, col=1)
+
     fig_rsi.update_layout(title='RSI指標',
                           xaxis_title='日期',
                           yaxis_title='數值')
+
     st.plotly_chart(fig_rsi)
 
 # Streamlit應用程式主體
@@ -122,7 +156,7 @@ def main():
     start_date = st.sidebar.date_input("選擇開始日期", value=pd.to_datetime("2020-01-01"))
     end_date = st.sidebar.date_input("選擇結束日期", value=pd.to_datetime("2023-12-31"))
     interval = st.sidebar.selectbox("選擇數據頻率", options=['1d', '1wk', '1mo'], index=0)
-    strategy_name = st.sidebar.selectbox("選擇交易策略", options=["Bollinger Bands", "KDJ", "RSI"], index=0)
+    strategy_name = st.sidebar.selectbox("選擇交易策略", options=["Bollinger Bands", "KDJ", "RSI", "MACD"], index=0)
 
     if strategy_name == "Bollinger Bands":
         bollinger_period = st.sidebar.slider("布林通道週期", min_value=5, max_value=50, value=20, step=1)
@@ -139,7 +173,6 @@ def main():
 
         if strategy_name == "Bollinger Bands":
             stock = calculate_bollinger_bands(stock, period=bollinger_period, std_dev=bollinger_std)
-            stock = calculate_macd(stock)
             plot_stock_data(stock, strategy_name)
         elif strategy_name == "KDJ":
             stock = calculate_kdj(stock, period=kdj_period)
@@ -147,6 +180,9 @@ def main():
         elif strategy_name == "RSI":
             stock = calculate_rsi(stock, period=rsi_period)
             plot_rsi(stock)
+        elif strategy_name == "MACD":
+            stock = calculate_macd(stock)
+            plot_macd(stock)
 
 if __name__ == "__main__":
     main()
