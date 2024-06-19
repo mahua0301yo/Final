@@ -65,69 +65,95 @@ def calculate_donchian_channels(stock, period=20):
     stock['Donchian_Low'] = stock['Low'].rolling(window=period).min()
     return stock
 
-# 定義繪圖函數來顯示股票數據和指標
-def plot_stock_data(stock, strategy_name):
+# 定義單獨的繪圖函數
+def plot_bollinger_bands(stock):
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.1,
-                        subplot_titles=(f"{strategy_name} 標的圖", "成交量"))
+                        subplot_titles=("布林通道", "成交量"))
 
     fig.add_trace(go.Candlestick(x=stock['Date'], open=stock['Open'], high=stock['High'],
                                  low=stock['Low'], close=stock['Close'], name='K線圖'), row=1, col=1)
-    
-    # 添加指標數據
-    if strategy_name == "Bollinger Bands":
-        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Middle_Band'], mode='lines', name='中軌'), row=1, col=1)
-        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Upper_Band'], mode='lines', name='上軌'), row=1, col=1)
-        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Lower_Band'], mode='lines', name='下軌'), row=1, col=1)
-    elif strategy_name == "KDJ":
-        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['K'], mode='lines', name='K'), row=2, col=1)
-        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['D'], mode='lines', name='D'), row=2, col=1)
-        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['J'], mode='lines', name='J'), row=2, col=1)
-    elif strategy_name == "RSI":
-        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['RSI'], mode='lines', name='RSI'), row=2, col=1)
-    elif strategy_name == "MACD":
-        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['MACD'], mode='lines', name='MACD'), row=2, col=1)
-        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Signal_Line'], mode='lines', name='Signal Line'), row=2, col=1)
-        fig.add_trace(go.Bar(x=stock['Date'], y=stock['Histogram'], name='Histogram'), row=2, col=1)
-    elif strategy_name == "唐奇安通道":
-        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Donchian_High'], mode='lines', name='唐奇安上軌'), row=1, col=1)
-        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Donchian_Low'], mode='lines', name='唐奇安下軌'), row=1, col=1)
-    
-    # 添加成交量圖
+    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Middle_Band'], mode='lines', name='中軌'), row=1, col=1)
+    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Upper_Band'], mode='lines', name='上軌'), row=1, col=1)
+    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Lower_Band'], mode='lines', name='下軌'), row=1, col=1)
     fig.add_trace(go.Bar(x=stock['Date'], y=stock['Volume'], name='成交量'), row=2, col=1)
 
-    fig.update_layout(title=f"{strategy_name} 策略圖", xaxis_title='日期', yaxis_title='價格')
+    fig.update_layout(title="布林通道策略圖", xaxis_title='日期', yaxis_title='價格')
     st.plotly_chart(fig)
 
-# 定義交易策略和績效計算函數
+def plot_kdj(stock):
+    fig = make_subplots(rows=3, cols=1, shared_xaxes=True, vertical_spacing=0.1,
+                        subplot_titles=("KDJ指標", "KDJ值", "成交量"))
+
+    fig.add_trace(go.Candlestick(x=stock['Date'], open=stock['Open'], high=stock['High'],
+                                 low=stock['Low'], close=stock['Close'], name='K線圖'), row=1, col=1)
+    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['K'], mode='lines', name='K值'), row=2, col=1)
+    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['D'], mode='lines', name='D值'), row=2, col=1)
+    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['J'], mode='lines', name='J值'), row=2, col=1)
+    fig.add_trace(go.Bar(x=stock['Date'], y=stock['Volume'], name='成交量'), row=3, col=1)
+
+    fig.update_layout(title="KDJ策略圖", xaxis_title='日期', yaxis_title='價格')
+    st.plotly_chart(fig)
+
+def plot_rsi(stock):
+    fig = make_subplots(rows=3, cols=1, shared_xaxes=True, vertical_spacing=0.1,
+                        subplot_titles=("RSI指標", "RSI值", "成交量"))
+
+    fig.add_trace(go.Candlestick(x=stock['Date'], open=stock['Open'], high=stock['High'],
+                                 low=stock['Low'], close=stock['Close'], name='K線圖'), row=1, col=1)
+    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['RSI'], mode='lines', name='RSI'), row=2, col=1)
+    fig.add_trace(go.Bar(x=stock['Date'], y=stock['Volume'], name='成交量'), row=3, col=1)
+
+    fig.update_layout(title="RSI策略圖", xaxis_title='日期', yaxis_title='價格')
+    st.plotly_chart(fig)
+
+def plot_macd(stock):
+    fig = make_subplots(rows=3, cols=1, shared_xaxes=True, vertical_spacing=0.1,
+                        subplot_titles=("MACD指標", "MACD值", "成交量"))
+
+    fig.add_trace(go.Candlestick(x=stock['Date'], open=stock['Open'], high=stock['High'],
+                                 low=stock['Low'], close=stock['Close'], name='K線圖'), row=1, col=1)
+    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['MACD'], mode='lines', name='MACD'), row=2, col=1)
+    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Signal_Line'], mode='lines', name='Signal Line'), row=2, col=1)
+    fig.add_trace(go.Bar(x=stock['Date'], y=stock['Histogram'], name='Histogram'), row=2, col=1)
+    fig.add_trace(go.Bar(x=stock['Date'], y=stock['Volume'], name='成交量'), row=3, col=1)
+
+    fig.update_layout(title="MACD策略圖", xaxis_title='日期', yaxis_title='價格')
+    st.plotly_chart(fig)
+
+def plot_donchian_channels(stock):
+    fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.1,
+                        subplot_titles=("唐奇安通道", "成交量"))
+
+    fig.add_trace(go.Candlestick(x=stock['Date'], open=stock['Open'], high=stock['High'],
+                                 low=stock['Low'], close=stock['Close'], name='K線圖'), row=1, col=1)
+    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Donchian_High'], mode='lines', name='高值通道'), row=1, col=1)
+    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Donchian_Low'], mode='lines', name='低值通道'), row=1, col=1)
+    fig.add_trace(go.Bar(x=stock['Date'], y=stock['Volume'], name='成交量'), row=2, col=1)
+
+    fig.update_layout(title="唐奇安通道策略圖", xaxis_title='日期', yaxis_title='價格')
+    st.plotly_chart(fig)
+
+# 定義交易策略
 def trading_strategy(stock, strategy_name):
-    # 這裡可以加入每個指標的交易策略，例如：
+    # 根據不同的策略進行交易
     if strategy_name == "Bollinger Bands":
-        # 示例：布林通道策略
-        stock['Buy_Signal'] = (stock['Close'] < stock['Lower_Band'])
-        stock['Sell_Signal'] = (stock['Close'] > stock['Upper_Band'])
+        stock['Position'] = np.where(stock['Close'] > stock['Upper_Band'], -1, np.nan)
+        stock['Position'] = np.where(stock['Close'] < stock['Lower_Band'], 1, stock['Position'])
     elif strategy_name == "KDJ":
-        # 示例：KDJ策略
-        stock['Buy_Signal'] = (stock['K'] > stock['D']) & (stock['J'] < 20)
-        stock['Sell_Signal'] = (stock['K'] < stock['D']) & (stock['J'] > 80)
+        stock['Position'] = np.where(stock['K'] > stock['D'], 1, -1)
     elif strategy_name == "RSI":
-        # 示例：RSI策略
-        stock['Buy_Signal'] = stock['RSI'] < 30
-        stock['Sell_Signal'] = stock['RSI'] > 70
+        stock['Position'] = np.where(stock['RSI'] < 20, 1, np.nan)
+        stock['Position'] = np.where(stock['RSI'] > 80, -1, stock['Position'])
     elif strategy_name == "MACD":
-        # 示例：MACD策略
-        stock['Buy_Signal'] = stock['MACD'] > stock['Signal_Line']
-        stock['Sell_Signal'] = stock['MACD'] < stock['Signal_Line']
+        stock['Position'] = np.where(stock['MACD'] > stock['Signal_Line'], 1, -1)
     elif strategy_name == "唐奇安通道":
-        # 示例：唐奇安通道策略
-        stock['Buy_Signal'] = stock['Close'] > stock['Donchian_High'].shift(1)
-        stock['Sell_Signal'] = stock['Close'] < stock['Donchian_Low'].shift(1)
-    
-    # 績效計算
-    stock['Position'] = 0
-    stock.loc[stock['Buy_Signal'], 'Position'] = 1
-    stock.loc[stock['Sell_Signal'], 'Position'] = -1
-    stock['Daily_Return'] = stock['Close'].pct_change()
-    stock['Strategy_Return'] = stock['Position'].shift(1) * stock['Daily_Return']
+        stock['Position'] = np.where(stock['Close'] > stock['Donchian_High'].shift(1), 1, np.nan)
+        stock['Position'] = np.where(stock['Close'] < stock['Donchian_Low'].shift(1), -1, stock['Position'])
+
+    stock['Position'].fillna(method='ffill', inplace=True)
+    stock['Position'].fillna(0, inplace=True)
+    stock['Market_Return'] = stock['Close'].pct_change()
+    stock['Strategy_Return'] = stock['Market_Return'] * stock['Position'].shift(1)
     stock['Cumulative_Strategy_Return'] = (1 + stock['Strategy_Return']).cumprod() - 1
 
     # 計算績效指標
@@ -188,19 +214,19 @@ def main():
 
         if strategy_name == "Bollinger Bands":
             stock = calculate_bollinger_bands(stock, period=bollinger_period, std_dev=bollinger_std)
-            plot_stock_data(stock, strategy_name)
+            plot_bollinger_bands(stock)
         elif strategy_name == "KDJ":
             stock = calculate_kdj(stock, period=kdj_period)
-            plot_stock_data(stock, strategy_name)
+            plot_kdj(stock)
         elif strategy_name == "RSI":
             stock = calculate_rsi(stock, period=rsi_period)
-            plot_stock_data(stock, strategy_name)
+            plot_rsi(stock)
         elif strategy_name == "MACD":
             stock = calculate_macd(stock, short_window=short_window, long_window=long_window, signal_window=signal_window)
-            plot_stock_data(stock, strategy_name)
+            plot_macd(stock)
         elif strategy_name == "唐奇安通道":
             stock = calculate_donchian_channels(stock, period=donchian_period)
-            plot_stock_data(stock, strategy_name)
+            plot_donchian_channels(stock)
         
         stock = trading_strategy(stock, strategy_name)
         st.write(f"策略績效 (累積報酬): {stock['Cumulative_Strategy_Return'].iloc[-1]:.2%}")
