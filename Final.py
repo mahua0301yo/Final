@@ -82,11 +82,11 @@ def plot_stock_data(stock, strategy_name):
     if 'Lower_Band' in stock.columns:
         fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Lower_Band'], line=dict(color='red', width=1), name='下軌'), row=1, col=1)
 
-    # 加入唐奇安通道
+    # 加入唐奇安通道（使用實線）
     if 'Upper_Channel' in stock.columns:
-        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Upper_Channel'], line=dict(color='green', width=1, dash='dash'), name='唐奇安通道上通道'), row=1, col=1)
+        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Upper_Channel'], line=dict(color='green', width=1), name='唐奇安通道上通道'), row=1, col=1)
     if 'Lower_Channel' in stock.columns:
-        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Lower_Channel'], line=dict(color='green', width=1, dash='dash'), name='唐奇安通道下通道'), row=1, col=1)
+        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Lower_Channel'], line=dict(color='green', width=1), name='唐奇安通道下通道'), row=1, col=1)
     
     fig.add_trace(go.Bar(x=stock['Date'], y=stock['amount'], name='交易量'), row=2, col=1)
 
@@ -123,11 +123,22 @@ def plot_rsi(stock):
     fig_rsi.add_trace(go.Scatter(x=stock[stock['Oversold'] == True]['Date'], y=stock[stock['Oversold'] == True]['RSI'],
                                  mode='markers', marker=dict(color='blue', size=8, symbol='triangle-down'), name='超賣'))
     
+    # 加入超買超賣區域的標示
+    fig_rsi.add_shape(type="rect", xref="paper", yref="y",
+                      x0=0, y0=80, x1=1, y1=100,
+                      fillcolor="rgba(255, 0, 0, 0.3)",  # 使用紅色半透明填滿
+                      layer="below", line_width=0,
+                      name="超買區域")
+    
+    fig_rsi.add_shape(type="rect", xref="paper", yref="y",
+                      x0=0, y0=0, x1=1, y1=20,
+                      fillcolor="rgba(0, 0, 255, 0.3)",  # 使用藍色半透明填滿
+                      layer="below", line_width=0,
+                      name="超賣區域")
+    
     fig_rsi.update_layout(title='RSI指標',
                           xaxis_title='日期',
-                          yaxis_title='數值',
-                          yaxis=dict(range=[0, 100]))  # 設置y軸範圍為0到100
-
+                          yaxis_title='數值')
     st.plotly_chart(fig_rsi)
 
 # 繪製MACD指標
