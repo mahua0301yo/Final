@@ -57,6 +57,13 @@ def calculate_macd(stock, short_window=12, long_window=26, signal_window=9):
     stock.drop(columns=['EMA12', 'EMA26'], inplace=True)
     return stock
 
+# 定義函數來計算唐奇安通道
+def calculate_donchian_channels(stock, period=20):
+    stock['Upper_Channel'] = stock['High'].rolling(window=period).max()
+    stock['Lower_Channel'] = stock['Low'].rolling(window=period).min()
+    stock['Middle_Channel'] = (stock['Upper_Channel'] + stock['Lower_Channel']) / 2
+    return stock
+
 # 繪製股票數據和指標圖
 def plot_stock_data(stock, strategy_name):
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True,
@@ -75,6 +82,14 @@ def plot_stock_data(stock, strategy_name):
         fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Middle_Band'], line=dict(color='blue', width=1), name='中軌'), row=1, col=1)
     if 'Lower_Band' in stock.columns:
         fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Lower_Band'], line=dict(color='red', width=1), name='下軌'), row=1, col=1)
+    
+    # Add Donchian Channels
+    if 'Upper_Channel' in stock.columns:
+        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Upper_Channel'], line=dict(color='green', width=1), name='唐奇安上通道'), row=1, col=1)
+    if 'Middle_Channel' in stock.columns:
+        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Middle_Channel'], line=dict(color='orange', width=1), name='唐奇安中軌'), row=1, col=1)
+    if 'Lower_Channel' in stock.columns:
+        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Lower_Channel'], line=dict(color='green', width=1), name='唐奇安下通道'), row=1, col=1)
     
     fig.add_trace(go.Bar(x=stock['Date'], y=stock['amount'], name='交易量'), row=2, col=1)
 
@@ -170,6 +185,10 @@ def main():
         elif strategy_name == "MACD":
             stock = calculate_macd(stock, short_window=short_window, long_window=long_window, signal_window=signal_window)
             plot_macd(stock)
+
+        # Calculate and plot Donchian Channels
+        stock = calculate_donchian_channels(stock, period=20)
+        plot_stock_data(stock, "唐奇安通道")
 
 if __name__ == "__main__":
     main()
