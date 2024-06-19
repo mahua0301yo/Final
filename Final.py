@@ -81,41 +81,38 @@ def plot_bollinger_bands(stock):
     st.plotly_chart(fig)
 
 def plot_kdj(stock):
-    fig = make_subplots(rows=3, cols=1, shared_xaxes=True, vertical_spacing=0.1,
-                        subplot_titles=("KDJ指標", "KDJ值", "成交量"))
+    fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.1,
+                        subplot_titles=("KDJ指標", "KDJ值"))
 
     fig.add_trace(go.Candlestick(x=stock['Date'], open=stock['Open'], high=stock['High'],
                                  low=stock['Low'], close=stock['Close'], name='K線圖'), row=1, col=1)
     fig.add_trace(go.Scatter(x=stock['Date'], y=stock['K'], mode='lines', name='K值'), row=2, col=1)
     fig.add_trace(go.Scatter(x=stock['Date'], y=stock['D'], mode='lines', name='D值'), row=2, col=1)
     fig.add_trace(go.Scatter(x=stock['Date'], y=stock['J'], mode='lines', name='J值'), row=2, col=1)
-    fig.add_trace(go.Bar(x=stock['Date'], y=stock['Volume'], name='成交量'), row=3, col=1)
 
     fig.update_layout(title="KDJ策略圖", xaxis_title='日期', yaxis_title='價格')
     st.plotly_chart(fig)
 
 def plot_rsi(stock):
-    fig = make_subplots(rows=3, cols=1, shared_xaxes=True, vertical_spacing=0.1,
-                        subplot_titles=("RSI指標", "RSI值", "成交量"))
+    fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.1,
+                        subplot_titles=("RSI指標", "RSI值"))
 
     fig.add_trace(go.Candlestick(x=stock['Date'], open=stock['Open'], high=stock['High'],
                                  low=stock['Low'], close=stock['Close'], name='K線圖'), row=1, col=1)
     fig.add_trace(go.Scatter(x=stock['Date'], y=stock['RSI'], mode='lines', name='RSI'), row=2, col=1)
-    fig.add_trace(go.Bar(x=stock['Date'], y=stock['Volume'], name='成交量'), row=3, col=1)
 
     fig.update_layout(title="RSI策略圖", xaxis_title='日期', yaxis_title='價格')
     st.plotly_chart(fig)
 
 def plot_macd(stock):
-    fig = make_subplots(rows=3, cols=1, shared_xaxes=True, vertical_spacing=0.1,
-                        subplot_titles=("MACD指標", "MACD值", "成交量"))
+    fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.1,
+                        subplot_titles=("MACD指標", "MACD值"))
 
     fig.add_trace(go.Candlestick(x=stock['Date'], open=stock['Open'], high=stock['High'],
                                  low=stock['Low'], close=stock['Close'], name='K線圖'), row=1, col=1)
     fig.add_trace(go.Scatter(x=stock['Date'], y=stock['MACD'], mode='lines', name='MACD'), row=2, col=1)
     fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Signal_Line'], mode='lines', name='Signal Line'), row=2, col=1)
     fig.add_trace(go.Bar(x=stock['Date'], y=stock['Histogram'], name='Histogram'), row=2, col=1)
-    fig.add_trace(go.Bar(x=stock['Date'], y=stock['Volume'], name='成交量'), row=3, col=1)
 
     fig.update_layout(title="MACD策略圖", xaxis_title='日期', yaxis_title='價格')
     st.plotly_chart(fig)
