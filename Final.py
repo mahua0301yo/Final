@@ -60,19 +60,19 @@ def plot_stock_data(stock, strategy_name, price_range):
         x=stock['Date'], open=stock['Open'], high=stock['High'], low=stock['Low'], close=stock['Close'],
         name='Candlestick'))
 
-    if strategy_name == "Bollinger Bands":
+    if strategy_name == "Bollinger Bands" and 'Upper_Band' in stock.columns and 'Middle_Band' in stock.columns and 'Lower_Band' in stock.columns:
         fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Upper_Band'], line=dict(color='blue', width=1), name='Upper Band'))
         fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Middle_Band'], line=dict(color='orange', width=1), name='Middle Band'))
         fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Lower_Band'], line=dict(color='blue', width=1), name='Lower Band'))
-    elif strategy_name == "MACD":
+    elif strategy_name == "MACD" and 'MACD' in stock.columns and 'Signal_Line' in stock.columns and 'MACD_Histogram' in stock.columns:
         fig.add_trace(go.Scatter(x=stock['Date'], y=stock['MACD'], line=dict(color='blue', width=1), name='MACD'))
         fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Signal_Line'], line=dict(color='red', width=1), name='Signal Line'))
         fig.add_trace(go.Bar(x=stock['Date'], y=stock['MACD_Histogram'], name='MACD Histogram'))
-    elif strategy_name == "KDJ":
+    elif strategy_name == "KDJ" and 'K' in stock.columns and 'D' in stock.columns and 'J' in stock.columns:
         fig.add_trace(go.Scatter(x=stock['Date'], y=stock['K'], line=dict(color='blue', width=1), name='K'))
         fig.add_trace(go.Scatter(x=stock['Date'], y=stock['D'], line=dict(color='orange', width=1), name='D'))
         fig.add_trace(go.Scatter(x=stock['Date'], y=stock['J'], line=dict(color='green', width=1), name='J'))
-    elif strategy_name == "RSI":
+    elif strategy_name == "RSI" and 'RSI' in stock.columns:
         fig.add_trace(go.Scatter(x=stock['Date'], y=stock['RSI'], line=dict(color='blue', width=1), name='RSI'))
 
     fig.update_layout(title=strategy_name, xaxis_title='Date', yaxis_title='Price', yaxis=dict(range=price_range))
@@ -109,8 +109,8 @@ def main():
         max_price = stock['High'].max()
         price_range = st.sidebar.slider(
             "價格範圍",
-            min_value=float(min_price * 0.8),
-            max_value=float(max_price * 1.2),
+            min_value=float(min_price * 0.9),
+            max_value=float(max_price * 1.1),
             value=(float(min_price * 0.9), float(max_price * 1.1)),
             step=0.1
         )
@@ -125,7 +125,17 @@ def main():
         elif strategy_name == "RSI":
             stock = calculate_rsi(stock, period=rsi_period)
 
-        plot_stock_data(stock, strategy_name, price_range)
+        # 檢查指標是否計算成功
+        if strategy_name == "Bollinger Bands" and 'Upper_Band' in stock.columns and 'Middle_Band' in stock.columns and 'Lower_Band' in stock.columns:
+            plot_stock_data(stock, strategy_name, price_range)
+        elif strategy_name == "MACD" and 'MACD' in stock.columns and 'Signal_Line' in stock.columns and 'MACD_Histogram' in stock.columns:
+            plot_stock_data(stock, strategy_name, price_range)
+        elif strategy_name == "KDJ" and 'K' in stock.columns and 'D' in stock.columns and 'J' in stock.columns:
+            plot_stock_data(stock, strategy_name, price_range)
+        elif strategy_name == "RSI" and 'RSI' in stock.columns:
+            plot_stock_data(stock, strategy_name, price_range)
+        else:
+            st.error(f"{strategy_name} 指標計算失敗，請檢查輸入參數或數據是否正確")
 
 if __name__ == "__main__":
     main()
