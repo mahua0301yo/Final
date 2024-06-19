@@ -43,33 +43,25 @@ def calculate_rsi(stock, period=14):
     stock['RSI'] = 100 - (100 / (1 + rs))
     return stock
 
-# 定義函數來計算MACD指標
-def calculate_macd(stock, short_window=12, long_window=26, signal_window=9):
-    stock['EMA12'] = stock['Close'].ewm(span=short_window, adjust=False).mean()
-    stock['EMA26'] = stock['Close'].ewm(span=long_window, adjust=False).mean()
-    stock['MACD'] = stock['EMA12'] - stock['EMA26']
-    stock['Signal_Line'] = stock['MACD'].ewm(span=signal_window, adjust=False).mean()
-    stock.drop(columns=['EMA12', 'EMA26'], inplace=True)
-    return stock
-
 # 繪製股票數據和指標圖
 def plot_stock_data(stock, strategy_name):
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True,
                         vertical_spacing=0.02, row_heights=[0.7, 0.3])
 
-    # 添加K线图和MACD指标
     fig.add_trace(go.Candlestick(x=stock['Date'],
                                  open=stock['Open'],
                                  high=stock['High'],
                                  low=stock['Low'],
                                  close=stock['Close'],
                                  name='價格'), row=1, col=1)
+
+    if 'Upper_Band' in stock.columns:
+        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Upper_Band'], line=dict(color='red', width=1), name='上軌'), row=1, col=1)
+    if 'Middle_Band' in stock.columns:
+        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Middle_Band'], line=dict(color='blue', width=1), name='中軌'), row=1, col=1)
+    if 'Lower_Band' in stock.columns:
+        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Lower_Band'], line=dict(color='red', width=1), name='下軌'), row=1, col=1)
     
-    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['MACD'], line=dict(color='blue', width=1), name='MACD'), row=1, col=1)
-    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Signal_Line'], line=dict(color='red', width=1), name='Signal Line'), row=1, col=1)
-    fig.add_trace(go.Bar(x=stock['Date'], y=stock['MACD'] - stock['Signal_Line'], marker_color='grey', name='MACD Histogram'), row=2, col=1)
-    
-    # 添加交易量
     fig.add_trace(go.Bar(x=stock['Date'], y=stock['amount'], name='交易量'), row=2, col=1)
 
     fig.update_layout(title=f"{strategy_name}策略 - 股票價格與交易量",
@@ -104,30 +96,6 @@ def plot_rsi(stock):
                           yaxis_title='數值')
     st.plotly_chart(fig_rsi)
 
-# 繪製MACD指標
-def plot_macd(stock):
-    plot_stock_data(stock, "MACD")
-
-    fig_macd = make_subplots(rows=2, cols=1, shared_xaxes=True,
-                             vertical_spacing=0.02, row_heights=[0.7, 0.3])
-    
-    fig_macd.add_trace(go.Candlestick(x=stock['Date'],
-                                      open=stock['Open'],
-                                      high=stock['High'],
-                                      low=stock['Low'],
-                                      close=stock['Close'],
-                                      name='價格'), row=1, col=1)
-    
-    fig_macd.add_trace(go.Scatter(x=stock['Date'], y=stock['MACD'], line=dict(color='blue', width=1), name='MACD'), row=1, col=1)
-    fig_macd.add_trace(go.Scatter(x=stock['Date'], y=stock['Signal_Line'], line=dict(color='red', width=1), name='Signal Line'), row=1, col=1)
-
-    fig_macd.add_trace(go.Bar(x=stock['Date'], y=stock['MACD'] - stock['Signal_Line'], marker_color='grey', name='MACD Histogram'), row=2, col=1)
-    
-    fig_macd.update_layout(title='MACD指標',
-                           xaxis_title='日期',
-                           yaxis_title='數值')
-    st.plotly_chart(fig_macd)
-
 # Streamlit應用程式主體
 def main():
     st.title("股票技術分析工具")
@@ -136,7 +104,7 @@ def main():
     start_date = st.sidebar.date_input("選擇開始日期", value=pd.to_datetime("2020-01-01"))
     end_date = st.sidebar.date_input("選擇結束日期", value=pd.to_datetime("2023-12-31"))
     interval = st.sidebar.selectbox("選擇數據頻率", options=['1d', '1wk', '1mo'], index=0)
-    strategy_name = st.sidebar.selectbox("選擇交易策略", options=["Bollinger Bands", "KDJ", "RSI", "MACD"], index=0)
+    strategy_name = st.sidebar.selectbox("選擇交易策略", options=["Bollinger Bands", "KDJ", "RSI"], index=0)
 
     if strategy_name == "Bollinger Bands":
         bollinger_period = st.sidebar.slider("布林通道週期", min_value=5, max_value=50, value=20, step=1)
@@ -145,10 +113,6 @@ def main():
         kdj_period = st.sidebar.slider("KDJ週期", min_value=5, max_value=50, value=14, step=1)
     elif strategy_name == "RSI":
         rsi_period = st.sidebar.slider("RSI週期", min_value=5, max_value=50, value=14, step=1)
-    elif strategy_name == "MACD":
-        short_window = st.sidebar.slider("MACD短期均線", min_value=5, max_value=50, value=12, step=1)
-        long_window = st.sidebar.slider("MACD長期均線", min_value=5, max_value=50, value=26, step=1)
-        signal_window = st.sidebar.slider("MACD信號線", min_value=5, max_value=50, value=9, step=1)
 
     stock = load_stock_data(stockname, start_date, end_date, interval)
     if stock is not None:
@@ -164,9 +128,6 @@ def main():
         elif strategy_name == "RSI":
             stock = calculate_rsi(stock, period=rsi_period)
             plot_rsi(stock)
-        elif strategy_name == "MACD":
-            stock = calculate_macd(stock, short_window=short_window, long_window=long_window, signal_window=signal_window)
-            plot_macd(stock)
 
 if __name__ == "__main__":
     main()
