@@ -188,7 +188,7 @@ def main():
     st.sidebar.subheader("選擇資料區間")
     start_date = st.sidebar.date_input('選擇開始日期', datetime.date(2020, 1, 1))
     end_date = st.sidebar.date_input('選擇結束日期(若日期設未來，會顯示目前最新日期)', datetime.date(2100, 1, 1))
-    stockname = st.sidebar.text_input('請輸入股票代號 (例: 2610.TW,國外期貨代號請至Yahoo Finance查詢)', '2610.TW')
+    stockname = st.sidebar.text_input('請輸入股票代號 (例: 2610.TW,國外股票或期貨代號請至Yahoo Finance查詢)', '2610.TW')
 
     # 選擇K線時間長
     interval_options = {"1天": "1d", "1星期": "1wk", "1個月": "1mo"}
@@ -202,15 +202,15 @@ def main():
         bollinger_period = st.sidebar.slider("布林通道週期", min_value=5, max_value=50, value=20, step=1)
         bollinger_std = st.sidebar.slider("布林通道標準差倍數", min_value=1.0, max_value=3.0, value=2.0, step=0.1)
     elif strategy_name == "KDJ":
-        kdj_period = st.sidebar.slider("KDJ週期", min_value=5, max_value=50, value=14, step=1)
+        kdj_period = st.sidebar.slider("KDJ週期", min_value=5, max_value=50, value=10, step=1)
     elif strategy_name == "RSI":
-        rsi_period = st.sidebar.slider("RSI週期", min_value=5, max_value=50, value=14, step=1)
+        rsi_period = st.sidebar.slider("RSI週期", min_value=5, max_value=50, value=10, step=1)
     elif strategy_name == "MACD":
-        short_window = st.sidebar.slider("短期EMA窗口", min_value=5, max_value=50, value=12, step=1)
-        long_window = st.sidebar.slider("長期EMA窗口", min_value=10, max_value=100, value=26, step=1)
-        signal_window = st.sidebar.slider("信號線窗口", min_value=5, max_value=50, value=9, step=1)
+        short_window = st.sidebar.slider("短期EMA窗口", min_value=5, max_value=50, value=10, step=1)
+        long_window = st.sidebar.slider("長期EMA窗口", min_value=10, max_value=100, value=20, step=1)
+        signal_window = st.sidebar.slider("信號線窗口", min_value=5, max_value=50, value=7, step=1)
     elif strategy_name == "唐奇安通道":
-        donchian_period = st.sidebar.slider("唐奇安通道週期", min_value=5, max_value=50, value=20, step=1)
+        donchian_period = st.sidebar.slider("唐奇安通道週期", min_value=5, max_value=50, value=15, step=1)
 
     stock = load_stock_data(stockname, start_date, end_date, interval)
     if stock is not None:
