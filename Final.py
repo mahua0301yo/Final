@@ -78,7 +78,7 @@ def plot_bollinger_bands(stock):
     fig.add_trace(go.Bar(x=stock['Date'], y=stock['Volume'], name='成交量'), row=2, col=1)
 
     fig.update_layout(title="布林通道策略圖", xaxis_title='日期', yaxis_title='價格',
-                      dragmode='pan', editable=False)
+                      dragmode='pan', editable=False)  # 取消互動性和拖曳功能
     st.plotly_chart(fig)
 
 def plot_kdj(stock):
@@ -92,7 +92,7 @@ def plot_kdj(stock):
     fig.add_trace(go.Scatter(x=stock['Date'], y=stock['J'], mode='lines', name='J值'), row=2, col=1)
 
     fig.update_layout(title="KDJ策略圖", xaxis_title='日期', yaxis_title='價格',
-                      dragmode='pan', editable=False)
+                      dragmode='pan', editable=False)  # 取消互動性和拖曳功能
     st.plotly_chart(fig)
 
 def plot_rsi(stock):
@@ -104,7 +104,7 @@ def plot_rsi(stock):
     fig.add_trace(go.Scatter(x=stock['Date'], y=stock['RSI'], mode='lines', name='RSI'), row=2, col=1)
 
     fig.update_layout(title="RSI策略圖", xaxis_title='日期', yaxis_title='價格',
-                      dragmode='pan', editable=False)
+                      dragmode='pan', editable=False)  # 取消互動性和拖曳功能
     st.plotly_chart(fig)
 
 def plot_macd(stock):
@@ -118,7 +118,7 @@ def plot_macd(stock):
     fig.add_trace(go.Bar(x=stock['Date'], y=stock['Histogram'], name='Histogram'), row=2, col=1)
 
     fig.update_layout(title="MACD策略圖", xaxis_title='日期', yaxis_title='價格',
-                      dragmode='pan', editable=False)
+                      dragmode='pan', editable=False)  # 取消互動性和拖曳功能
     st.plotly_chart(fig)
 
 def plot_donchian_channels(stock):
@@ -132,106 +132,56 @@ def plot_donchian_channels(stock):
     fig.add_trace(go.Bar(x=stock['Date'], y=stock['Volume'], name='成交量'), row=2, col=1)
 
     fig.update_layout(title="唐奇安通道策略圖", xaxis_title='日期', yaxis_title='價格',
-                      dragmode='pan', editable=False)
+                      dragmode='pan', editable=False)  # 取消互動性和拖曳功能
     st.plotly_chart(fig)
 
-# 定義交易策略
-def trading_strategy(stock, strategy_name):
-    # 根據不同的策略進行交易
-    if strategy_name == "Bollinger Bands":
-        stock['Position'] = np.where(stock['Close'] > stock['Upper_Band'], -1, np.nan)
-        stock['Position'] = np.where(stock['Close'] < stock['Lower_Band'], 1, stock['Position'])
-    elif strategy_name == "KDJ":
-        stock['Position'] = np.where(stock['K'] > stock['D'], 1, -1)
-    elif strategy_name == "RSI":
-        stock['Position'] = np.where(stock['RSI'] < 20, 1, np.nan)
-        stock['Position'] = np.where(stock['RSI'] > 80, -1, stock['Position'])
-    elif strategy_name == "MACD":
-        stock['Position'] = np.where(stock['MACD'] > stock['Signal_Line'], 1, -1)
-    elif strategy_name == "唐奇安通道":
-        stock['Position'] = np.where(stock['Close'] > stock['Donchian_High'].shift(1), 1, np.nan)
-        stock['Position'] = np.where(stock['Close'] < stock['Donchian_Low'].shift(1), -1, stock['Position'])
-
-    stock['Position'].fillna(method='ffill', inplace=True)
-    stock['Position'].fillna(0, inplace=True)
-    stock['Market_Return'] = stock['Close'].pct_change()
-    stock['Strategy_Return'] = stock['Market_Return'] * stock['Position'].shift(1)
-    stock['Cumulative_Strategy_Return'] = (1 + stock['Strategy_Return']).cumprod() - 1
-
-    # 計算績效指標
-    total_trades = len(stock[(stock['Position'] == 1) | (stock['Position'] == -1)])
-    winning_trades = len(stock[(stock['Position'].shift(1) == 1) & (stock['Strategy_Return'] > 0)])
-    win_rate = winning_trades / total_trades if total_trades > 0 else 0
-
-    stock['Drawdown'] = (stock['Cumulative_Strategy_Return'].cummax() - stock['Cumulative_Strategy_Return'])
-    max_drawdown = stock['Drawdown'].max()
-
-    total_profit = stock['Strategy_Return'].sum()
-    consecutive_losses = (stock['Strategy_Return'] < 0).astype(int).groupby(stock['Strategy_Return'].ge(0).cumsum()).sum().max()
-
-    st.write(f"策略績效指標:")
-    st.write(f"勝率: {win_rate:.2%}")
-    st.write(f"最大連續虧損: {consecutive_losses}")
-    st.write(f"最大資金回落: {max_drawdown:.2%}")
-    st.write(f"總損益: {total_profit:.2%}")
-
-    return stock
-
-# 主函數
+# 主程式碼部分
 def main():
-    st.title("股票技術指標交易策略")
+    # 標題
+    st.title('股票技術指標分析')
 
-    # 選擇資料區間
-    st.sidebar.subheader("選擇資料區間")
-    start_date = st.sidebar.date_input('選擇開始日期', datetime.date(2020, 1, 1))
-    end_date = st.sidebar.date_input('選擇結束日期', datetime.date(2023, 1, 1))
-    stockname = st.sidebar.text_input('請輸入股票代號 (例: 2330.TW)', '2330.TW')
+    # 輸入股票代碼
+    stockname = st.text_input('輸入股票代碼（例如AAPL）：')
 
-    # 選擇K線時間長
-    interval_options = {"1天": "1d", "1星期": "1wk", "1個月": "1mo"}
-    interval_label = st.sidebar.selectbox("選擇K線時間長", list(interval_options.keys()))
-    interval = interval_options[interval_label]
+    # 確認是否有輸入股票代碼
+    if not stockname:
+        st.warning('請輸入股票代碼')
+        return
 
-    # 選擇指標和參數
-    strategy_name = st.sidebar.selectbox("選擇指標", ["Bollinger Bands", "KDJ", "RSI", "MACD", "唐奇安通道"])
+    # 輸入股票代碼後，設置預設的時間範圍
+    today = datetime.date.today()
+    start_date = st.date_input('開始日期', today - datetime.timedelta(days=365))
+    end_date = st.date_input('結束日期', today)
 
-    if strategy_name == "Bollinger Bands":
-        bollinger_period = st.sidebar.slider("布林通道週期", min_value=5, max_value=50, value=20, step=1)
-        bollinger_std = st.sidebar.slider("布林通道標準差倍數", min_value=1.0, max_value=3.0, value=2.0, step=0.1)
-    elif strategy_name == "KDJ":
-        kdj_period = st.sidebar.slider("KDJ週期", min_value=5, max_value=50, value=14, step=1)
-    elif strategy_name == "RSI":
-        rsi_period = st.sidebar.slider("RSI週期", min_value=5, max_value=50, value=14, step=1)
-    elif strategy_name == "MACD":
-        short_window = st.sidebar.slider("短期EMA窗口", min_value=5, max_value=50, value=12, step=1)
-        long_window = st.sidebar.slider("長期EMA窗口", min_value=10, max_value=100, value=26, step=1)
-        signal_window = st.sidebar.slider("信號線窗口", min_value=5, max_value=50, value=9, step=1)
-    elif strategy_name == "唐奇安通道":
-        donchian_period = st.sidebar.slider("唐奇安通道週期", min_value=5, max_value=50, value=20, step=1)
+    # 獲取股票數據
+    stock = load_stock_data(stockname, start_date, end_date, '1d')
 
-    stock = load_stock_data(stockname, start_date, end_date, interval)
-    if stock is not None:
-        st.subheader(f"股票代號: {stockname}")
-        st.write(stock.head())
+    # 如果沒有成功加載股票數據，退出
+    if stock is None:
+        return
 
-        if strategy_name == "Bollinger Bands":
-            stock = calculate_bollinger_bands(stock, period=bollinger_period, std_dev=bollinger_std)
-            plot_bollinger_bands(stock)
-        elif strategy_name == "KDJ":
-            stock = calculate_kdj(stock, period=kdj_period)
-            plot_kdj(stock)
-        elif strategy_name == "RSI":
-            stock = calculate_rsi(stock, period=rsi_period)
-            plot_rsi(stock)
-        elif strategy_name == "MACD":
-            stock = calculate_macd(stock, short_window=short_window, long_window=long_window, signal_window=signal_window)
-            plot_macd(stock)
-        elif strategy_name == "唐奇安通道":
-            stock = calculate_donchian_channels(stock, period=donchian_period)
-            plot_donchian_channels(stock)
-        
-        stock = trading_strategy(stock, strategy_name)
-        st.write(f"策略績效 (累積報酬): {stock['Cumulative_Strategy_Return'].iloc[-1]:.2%}")
+    # 計算技術指標
+    stock = calculate_bollinger_bands(stock)
+    stock = calculate_kdj(stock)
+    stock = calculate_rsi(stock)
+    stock = calculate_macd(stock)
+    stock = calculate_donchian_channels(stock)
 
-if __name__ == "__main__":
+    # 顯示各個技術指標的圖表
+    st.subheader('布林通道策略')
+    plot_bollinger_bands(stock)
+
+    st.subheader('KDJ策略')
+    plot_kdj(stock)
+
+    st.subheader('RSI策略')
+    plot_rsi(stock)
+
+    st.subheader('MACD策略')
+    plot_macd(stock)
+
+    st.subheader('唐奇安通道策略')
+    plot_donchian_channels(stock)
+
+if __name__ == '__main__':
     main()
