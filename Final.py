@@ -49,11 +49,8 @@ def calculate_rsi(stock, period=14):
     loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
     rs = gain / loss
     stock['RSI'] = 100 - (100 / (1 + rs))
-    
-    # 加入超買超賣區域設定
     stock['Overbought'] = 80
     stock['Oversold'] = 20
-    
     return stock
 
 # 定義函數來繪製股票數據和技術指標
@@ -204,8 +201,6 @@ def plot_stock_data(stock, strategy_name):
     )
 
     st.plotly_chart(fig)
-
-
 
 # Streamlit 應用程式
 def main():
