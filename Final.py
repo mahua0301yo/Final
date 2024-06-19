@@ -170,76 +170,64 @@ def plot_stock_data(stock, strategy_name):
         fig.add_trace(go.Scatter(x=stock['Date'], y=stock['D'], mode='lines', name='D'))
         fig.add_trace(go.Scatter(x=stock['Date'], y=stock['J'], mode='lines', name='J'))
     elif strategy_name == "Bollinger Bands":
+        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Middle_Band'], mode='lines', name='Middle Band'))
         fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Upper_Band'], mode='lines', name='Upper Band'))
         fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Lower_Band'], mode='lines', name='Lower Band'))
     elif strategy_name == "MACD":
         fig.add_trace(go.Scatter(x=stock['Date'], y=stock['MACD'], mode='lines', name='MACD'))
         fig.add_trace(go.Scatter(x=stock['Date'], y=stock['MACD_Signal'], mode='lines', name='MACD Signal'))
-        fig.add_trace(go.Bar(x=stock['Date'], y=stock['MACD_Hist'], name='MACD Hist'))
-    
-    st.plotly_chart(fig)
+        fig.add_trace(go.Bar(x=stock['Date'], y=stock['MACD_Hist'], name='MACD Histogram'))
 
-    # 計算和顯示績效指標
-    performance_metrics = calculate_performance(stock)
-    st.write("績效指標:")
-    st.write(f"總損益: {performance_metrics['Total Profit']}")
-    st.write(f"勝率: {performance_metrics['Win Rate']}")
-    st.write(f"最大連續虧損: {performance_metrics['Max Consecutive Losses']}")
-    st.write(f"最大資金回落 (MDD): {performance_metrics['Max Drawdown']}%")
-    st.write(f"報酬率: {performance_metrics['Return Rate']}%")
+    fig.update_layout(title=f'{strategy_name} 策略', xaxis_title='日期', yaxis_title='價格', showlegend=True)
+    st.plotly_chart(fig)
 
 # 主函數
 def main():
     display_header()
 
-    # 選擇資料區間
-    st.subheader("選擇資料區間")
-    start_date = st.date_input('選擇開始日期', datetime.date(2015, 1, 1))
-    end_date = st.date_input('選擇結束日期', datetime.date(2100, 12, 31))
-    stockname = st.text_input('請輸入股票代號 (例: 2330.TW)', '2330.TW')
+    # 用戶輸入部分
+    st.sidebar.subheader("設置")
+    stockname = st.sidebar.text_input("輸入股票代號", value='AAPL')
+    start_date = st.sidebar.date_input("開始日期", datetime.date(2010, 1, 1))
+    end_date = st.sidebar.date_input("結束日期", datetime.date(2023, 1, 1))
+    interval = st.sidebar.selectbox("選擇數據頻率", options=['1d', '1wk', '1mo'], index=0)
+    strategy_name = st.sidebar.selectbox("選擇交易策略", options=["KDJ", "Bollinger Bands", "MACD"], index=0)
 
-    # 選擇K線時間長
-    interval_options = {
-        "1天": "1d",
-        "1星期": "1wk",
-        "1個月": "1mo",
-        "3個月": "3mo"
-    }
-    interval_label = st.selectbox("選擇K線時間長", list(interval_options.keys()))
-    interval = interval_options[interval_label]
-
-    # 選擇技術指標
-    strategy_options = ["KDJ", "Bollinger Bands", "MACD"]
-    strategy_name = st.selectbox("選擇技術指標", strategy_options)
-
-    # 設定指標參數
-    if strategy_name == "KDJ":
-        kdj_period = st.number_input('請輸入KDJ週期', min_value=1, max_value=100, value=14, step=1)
-    elif strategy_name == "Bollinger Bands":
-        bollinger_period = st.number_input('請輸入布林通道週期', min_value=1, max_value=100, value=20, step=1)
-        bollinger_std = st.number_input('請輸入布林通道標準差倍數', min_value=0.1, max_value=10.0, value=2.0, step=0.1)
+    if strategy_name == "Bollinger Bands":
+        bollinger_period = st.sidebar.slider("布林通道週期", min_value=5, max_value=50, value=20, step=1)
+        bollinger_std = st.sidebar.slider("布林通道標準差倍數", min_value=1.0, max_value=3.0, value=2.0, step=0.1)
+        macd_short_period, macd_long_period, macd_signal_period = 0, 0, 0
     elif strategy_name == "MACD":
-        macd_short_period = st.number_input('請輸入MACD短期EMA週期', min_value=1, max_value=50, value=12, step=1)
-        macd_long_period = st.number_input('請輸入MACD長期EMA週期', min_value=1, max_value=50, value=26, step=1)
-        macd_signal_period = st.number_input('請輸入MACD信號線週期', min_value=1, max_value=50, value=9, step=1)
-
-    # 驗證日期輸入
-    if start_date > end_date:
-        st.error("開始日期不能晚於結束日期")
+        macd_short_period = st.sidebar.number_input("輸入MACD短期EMA週期", min_value=1, max_value=50, value=12, step=1)
+        macd_long_period = st.sidebar.number_input("輸入MACD長期EMA週期", min_value=1, max_value=50, value=26, step=1)
+        macd_signal_period = st.sidebar.number_input("輸入MACD信號線週期", min_value=1, max_value=50, value=9, step=1)
+        bollinger_period, bollinger_std = 0, 0
     else:
-        stock = load_stock_data(stockname, start_date, end_date, interval)
-        if stock is not None:
-            if strategy_name == "KDJ":
-                stock = calculate_kdj(stock, kdj_period)
-                stock = kdj_strategy(stock)
-            elif strategy_name == "Bollinger Bands":
-                stock = calculate_indicators(stock, bollinger_period, bollinger_std, 0, 0, 0)
-                stock = bollinger_strategy(stock)
-            elif strategy_name == "MACD":
-                stock = calculate_indicators(stock, 0, 0, macd_short_period, macd_long_period, macd_signal_period)
-                stock = macd_strategy(stock)
-            
-            plot_stock_data(stock, strategy_name)
+        bollinger_period, bollinger_std, macd_short_period, macd_long_period, macd_signal_period = 0, 0, 0, 0, 0
+
+    # 讀取股票數據
+    stock = load_stock_data(stockname, start_date, end_date, interval)
+    if stock is not None:
+        st.subheader(f"股票代號: {stockname}")
+        st.write(stock.head())
+
+        # 計算技術指標並繪圖
+        if strategy_name == "KDJ":
+            stock = calculate_kdj(stock)
+            stock = kdj_strategy(stock)
+        elif strategy_name == "Bollinger Bands":
+            stock = calculate_indicators(stock, bollinger_period, bollinger_std, 0, 0, 0)
+            stock = bollinger_strategy(stock)
+        elif strategy_name == "MACD":
+            stock = calculate_indicators(stock, 0, 0, macd_short_period, macd_long_period, macd_signal_period)
+            stock = macd_strategy(stock)
+
+        plot_stock_data(stock, strategy_name)
+
+        # 顯示績效指標
+        performance_metrics = calculate_performance(stock)
+        st.subheader("績效指標")
+        st.write(performance_metrics)
 
 if __name__ == "__main__":
     main()
