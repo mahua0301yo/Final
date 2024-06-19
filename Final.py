@@ -130,6 +130,23 @@ def trading_strategy(stock, strategy_name):
     stock['Strategy_Return'] = stock['Position'].shift(1) * stock['Daily_Return']
     stock['Cumulative_Strategy_Return'] = (1 + stock['Strategy_Return']).cumprod() - 1
 
+    # 計算績效指標
+    total_trades = len(stock[(stock['Position'] == 1) | (stock['Position'] == -1)])
+    winning_trades = len(stock[(stock['Position'].shift(1) == 1) & (stock['Strategy_Return'] > 0)])
+    win_rate = winning_trades / total_trades if total_trades > 0 else 0
+
+    stock['Drawdown'] = (stock['Cumulative_Strategy_Return'].cummax() - stock['Cumulative_Strategy_Return'])
+    max_drawdown = stock['Drawdown'].max()
+
+    total_profit = stock['Strategy_Return'].sum()
+    consecutive_losses = (stock['Strategy_Return'] < 0).astype(int).groupby(stock['Strategy_Return'].ge(0).cumsum()).sum().max()
+
+    st.write(f"策略績效指標:")
+    st.write(f"勝率: {win_rate:.2%}")
+    st.write(f"最大連續虧損: {consecutive_losses}")
+    st.write(f"最大資金回落: {max_drawdown:.2%}")
+    st.write(f"總損益: {total_profit:.2%}")
+
     return stock
 
 # 主函數
@@ -171,17 +188,21 @@ def main():
 
         if strategy_name == "Bollinger Bands":
             stock = calculate_bollinger_bands(stock, period=bollinger_period, std_dev=bollinger_std)
+            plot_stock_data(stock, strategy_name)
         elif strategy_name == "KDJ":
             stock = calculate_kdj(stock, period=kdj_period)
+            plot_stock_data(stock, strategy_name)
         elif strategy_name == "RSI":
             stock = calculate_rsi(stock, period=rsi_period)
+            plot_stock_data(stock, strategy_name)
         elif strategy_name == "MACD":
             stock = calculate_macd(stock, short_window=short_window, long_window=long_window, signal_window=signal_window)
+            plot_stock_data(stock, strategy_name)
         elif strategy_name == "唐奇安通道":
             stock = calculate_donchian_channels(stock, period=donchian_period)
+            plot_stock_data(stock, strategy_name)
         
         stock = trading_strategy(stock, strategy_name)
-        plot_stock_data(stock, strategy_name)
         st.write(f"策略績效 (累積報酬): {stock['Cumulative_Strategy_Return'].iloc[-1]:.2%}")
 
 if __name__ == "__main__":
