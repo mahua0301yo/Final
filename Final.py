@@ -109,8 +109,8 @@ def main():
         max_price = stock['High'].max()
         price_range = st.sidebar.slider(
             "價格範圍",
-            min_value=float(min_price * 0.9),
-            max_value=float(max_price * 1.1),
+            min_value=float(min_price * 0.8),
+            max_value=float(max_price * 1.2),
             value=(float(min_price * 0.9), float(max_price * 1.1)),
             step=0.1
         )
