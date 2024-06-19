@@ -41,6 +41,11 @@ def calculate_rsi(stock, period=14):
     loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
     rs = gain / loss
     stock['RSI'] = 100 - (100 / (1 + rs))
+    
+    # 新增超買和超賣標記
+    stock['Overbought'] = stock['RSI'] > 80
+    stock['Oversold'] = stock['RSI'] < 20
+    
     return stock
 
 # 定義函數來計算MACD指標
@@ -52,11 +57,10 @@ def calculate_macd(stock, short_window=12, long_window=26, signal_window=9):
     stock.drop(columns=['EMA12', 'EMA26'], inplace=True)
     return stock
 
-# 定義函數來計算唐奇安通道
+# 定義函數來計算唐奇安通道指標
 def calculate_donchian_channels(stock, period=20):
-    stock['Upper_Channel'] = stock['High'].rolling(window=period).max()
-    stock['Lower_Channel'] = stock['Low'].rolling(window=period).min()
-    stock['Middle_Channel'] = (stock['Upper_Channel'] + stock['Lower_Channel']) / 2
+    stock['Upper_Channel'] = stock['Close'].rolling(window=period).max()
+    stock['Lower_Channel'] = stock['Close'].rolling(window=period).min()
     return stock
 
 # 繪製股票數據和指標圖
@@ -107,9 +111,17 @@ def plot_rsi(stock):
     fig_rsi = go.Figure()
     fig_rsi.add_trace(go.Scatter(x=stock['Date'], y=stock['RSI'], line=dict(color='purple', width=1), name='RSI'))
     
+    # 標記超買區和超賣區
+    fig_rsi.add_trace(go.Scatter(x=stock[stock['Overbought'] == True]['Date'], y=stock[stock['Overbought'] == True]['RSI'],
+                                 mode='markers', marker=dict(color='red', size=8, symbol='triangle-up'), name='超買'))
+    fig_rsi.add_trace(go.Scatter(x=stock[stock['Oversold'] == True]['Date'], y=stock[stock['Oversold'] == True]['RSI'],
+                                 mode='markers', marker=dict(color='blue', size=8, symbol='triangle-down'), name='超賣'))
+    
     fig_rsi.update_layout(title='RSI指標',
                           xaxis_title='日期',
-                          yaxis_title='數值')
+                          yaxis_title='數值',
+                          yaxis=dict(range=[0, 100]))  # 設置y軸範圍為0到100
+
     st.plotly_chart(fig_rsi)
 
 # 繪製MACD指標
@@ -129,24 +141,15 @@ def plot_macd(stock):
 
 # 繪製唐奇安通道
 def plot_donchian_channels(stock, period=20):
-    fig_donchian = make_subplots(rows=1, cols=1, shared_xaxes=True,
-                                 vertical_spacing=0.02)
+    plot_stock_data(stock, "唐奇安通道")
 
-    fig_donchian.add_trace(go.Candlestick(x=stock['Date'],
-                                          open=stock['Open'],
-                                          high=stock['High'],
-                                          low=stock['Low'],
-                                          close=stock['Close'],
-                                          name='價格'), row=1, col=1)
-
-    fig_donchian.add_trace(go.Scatter(x=stock['Date'], y=stock['Middle_Channel'], line=dict(color='blue', width=1), name='中軌'), row=1, col=1)
-    fig_donchian.add_trace(go.Scatter(x=stock['Date'], y=stock['Upper_Channel'], line=dict(color='red', width=1), name='上軌'), row=1, col=1)
-    fig_donchian.add_trace(go.Scatter(x=stock['Date'], y=stock['Lower_Channel'], line=dict(color='red', width=1), name='下軌'), row=1, col=1)
+    fig_donchian = go.Figure()
+    fig_donchian.add_trace(go.Scatter(x=stock['Date'], y=stock['Upper_Channel'], line=dict(color='red', width=1), name='上通道'))
+    fig_donchian.add_trace(go.Scatter(x=stock['Date'], y=stock['Lower_Channel'], line=dict(color='blue', width=1), name='下通道'))
 
     fig_donchian.update_layout(title='唐奇安通道',
                                xaxis_title='日期',
                                yaxis_title='價格')
-
     st.plotly_chart(fig_donchian)
 
 # Streamlit應用程式主體
