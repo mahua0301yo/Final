@@ -49,6 +49,7 @@ def calculate_rsi(stock, period=14):
     
     return stock
 
+
 # 定義函數來計算MACD指標
 def calculate_macd(stock, short_window=12, long_window=26, signal_window=9):
     stock['EMA_short'] = stock['Close'].ewm(span=short_window, adjust=False).mean()
@@ -99,9 +100,16 @@ def plot_rsi(stock):
     fig.add_trace(go.Candlestick(x=stock['Date'], open=stock['Open'], high=stock['High'],
                                  low=stock['Low'], close=stock['Close'], name='K線圖'), row=1, col=1)
     fig.add_trace(go.Scatter(x=stock['Date'], y=stock['RSI'], mode='lines', name='RSI'), row=2, col=1)
+    
+    # 加入超買和超賣的標記
+    fig.add_trace(go.Scatter(x=stock['Date'], y=np.where(stock['Overbought'], 80, None),
+                             mode='markers', marker=dict(color='red', size=10), name='超買 >80'), row=2, col=1)
+    fig.add_trace(go.Scatter(x=stock['Date'], y=np.where(stock['Oversold'], 20, None),
+                             mode='markers', marker=dict(color='blue', size=10), name='超賣 <20'), row=2, col=1)
 
     fig.update_layout(title="RSI策略圖", xaxis_title='日期', yaxis_title='價格', xaxis_rangeslider_visible=False)
     st.plotly_chart(fig)
+
 
 def plot_macd(stock):
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.1,
