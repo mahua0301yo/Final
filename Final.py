@@ -187,7 +187,13 @@ def main():
             st.write(f"勝率: {win_rate * 100:.2f}%")
             st.write(f"最大連續虧損: {acc_loss}")
             st.write(f"最大資金回落 (MDD): {mdd}")
-        
+            
+            # 計算報酬率
+            stock['Daily_Return'] = stock['Close'].pct_change()
+            cumulative_return = (stock['Daily_Return'] + 1).cumprod() - 1
+            st.subheader("報酬率")
+            st.line_chart(cumulative_return)
+
         elif strategy_name == "KDJ":
             kdj_period = st.sidebar.slider("KDJ週期", min_value=5, max_value=50, value=14, step=1)
             stock = calculate_kdj(stock, period=kdj_period)
@@ -201,7 +207,13 @@ def main():
             st.write(f"勝率: {win_rate * 100:.2f}%")
             st.write(f"最大連續虧損: {acc_loss}")
             st.write(f"最大資金回落 (MDD): {mdd}")
-        
+            
+            # 計算報酬率
+            stock['Daily_Return'] = stock['Close'].pct_change()
+            cumulative_return = (stock['Daily_Return'] + 1).cumprod() - 1
+            st.subheader("報酬率")
+            st.line_chart(cumulative_return)
+
         elif strategy_name == "RSI":
             rsi_period = st.sidebar.slider("RSI週期", min_value=5, max_value=50, value=14, step=1)
             stock = calculate_rsi(stock, period=rsi_period)
@@ -215,7 +227,13 @@ def main():
             st.write(f"勝率: {win_rate * 100:.2f}%")
             st.write(f"最大連續虧損: {acc_loss}")
             st.write(f"最大資金回落 (MDD): {mdd}")
-        
+            
+            # 計算報酬率
+            stock['Daily_Return'] = stock['Close'].pct_change()
+            cumulative_return = (stock['Daily_Return'] + 1).cumprod() - 1
+            st.subheader("報酬率")
+            st.line_chart(cumulative_return)
+
         elif strategy_name == "MACD":
             short_window = st.sidebar.slider("短期EMA窗口", min_value=5, max_value=50, value=12, step=1)
             long_window = st.sidebar.slider("長期EMA窗口", min_value=10, max_value=100, value=26, step=1)
@@ -231,7 +249,13 @@ def main():
             st.write(f"勝率: {win_rate * 100:.2f}%")
             st.write(f"最大連續虧損: {acc_loss}")
             st.write(f"最大資金回落 (MDD): {mdd}")
-        
+            
+            # 計算報酬率
+            stock['Daily_Return'] = stock['Close'].pct_change()
+            cumulative_return = (stock['Daily_Return'] + 1).cumprod() - 1
+            st.subheader("報酬率")
+            st.line_chart(cumulative_return)
+
         elif strategy_name == "唐奇安通道":
             donchian_period = st.sidebar.slider("唐奇安通道週期", min_value=5, max_value=50, value=20, step=1)
             stock = calculate_donchian_channels(stock, period=donchian_period)
@@ -245,61 +269,15 @@ def main():
             st.write(f"勝率: {win_rate * 100:.2f}%")
             st.write(f"最大連續虧損: {acc_loss}")
             st.write(f"最大資金回落 (MDD): {mdd}")
+            
+            # 計算報酬率
+            stock['Daily_Return'] = stock['Close'].pct_change()
+            cumulative_return = (stock['Daily_Return'] + 1).cumprod() - 1
+            st.subheader("報酬率")
+            st.line_chart(cumulative_return)
 
-# 計算布林通道交易績效的函數
-def calculate_bollinger_performance(stock):
-    # 假設這裡是計算布林通道策略的交易績效的地方
-    trade_record = "布林通道交易紀錄"
-    profit = 1200  # 示範損益
-    total_profit = 6000  # 示範總損益
-    win_rate = 0.68  # 示範勝率
-    acc_loss = 4  # 示範最大連續虧損
-    mdd = 1000  # 示範最大資金回落
-    return trade_record, profit, total_profit, win_rate, acc_loss, mdd
-
-# 計算KDJ交易績效的函數
-def calculate_kdj_performance(stock):
-    # 假設這裡是計算KDJ策略的交易績效的地方
-    trade_record = "KDJ交易紀錄"
-    profit = 800  # 示範損益
-    total_profit = 5000  # 示範總損益
-    win_rate = 0.65  # 示範勝率
-    acc_loss = 3  # 示範最大連續虧損
-    mdd = 800  # 示範最大資金回落
-    return trade_record, profit, total_profit, win_rate, acc_loss, mdd
-
-# 計算RSI交易績效的函數
-def calculate_rsi_performance(stock):
-    # 假設這裡是計算RSI策略的交易績效的地方
-    trade_record = "RSI交易紀錄"
-    profit = 1000  # 示範損益
-    total_profit = 7000  # 示範總損益
-    win_rate = 0.70  # 示範勝率
-    acc_loss = 5  # 示範最大連續虧損
-    mdd = 1200  # 示範最大資金回落
-    return trade_record, profit, total_profit, win_rate, acc_loss, mdd
-
-# 計算MACD交易績效的函數
-def calculate_macd_performance(stock):
-    # 假設這裡是計算MACD策略的交易績效的地方
-    trade_record = "MACD交易紀錄"
-    profit = 1500  # 示範損益
-    total_profit = 8000  # 示範總損益
-    win_rate = 0.72  # 示範勝率
-    acc_loss = 3  # 示範最大連續虧損
-    mdd = 900  # 示範最大資金回落
-    return trade_record, profit, total_profit, win_rate, acc_loss, mdd
-
-# 計算唐奇安通道交易績效的函數
-def calculate_donchian_performance(stock):
-    # 假設這裡是計算唐奇安通道策略的交易績效的地方
-    trade_record = "唐奇安通道交易紀錄"
-    profit = 900  # 示範損益
-    total_profit = 5500  # 示範總損益
-    win_rate = 0.67  # 示範勝率
-    acc_loss = 4  # 示範最大連續虧損
-    mdd = 950  # 示範最大資金回落
-    return trade_record, profit, total_profit, win_rate, acc_loss, mdd
+    else:
+        st.write(f"找不到股票代號 {stockname} 的數據")
 
 if __name__ == "__main__":
     main()
