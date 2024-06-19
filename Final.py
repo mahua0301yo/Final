@@ -1,7 +1,8 @@
+# 載入必要模組
 import yfinance as yf
 import pandas as pd
 import streamlit as st
-import mplfinance as mpf
+import matplotlib.pyplot as plt
 import numpy as np
 import datetime
 
@@ -43,8 +44,8 @@ def calculate_rsi(stock, period=14):
     stock['RSI'] = 100 - (100 / (1 + rs))
     
     # 新增超買和超賣標記
-    stock['Overbought'] = stock['RSI'] > 80
-    stock['Oversold'] = stock['RSI'] < 20
+    stock['Overbought'] = stock['RSI'] > 70
+    stock['Oversold'] = stock['RSI'] < 30
     
     return stock
 
@@ -65,136 +66,131 @@ def calculate_donchian_channels(stock, period=20):
 
 # 定義單獨的繪圖函數
 def plot_bollinger_bands(stock):
-    # 繪製K線圖
-    mpf.plot(stock.set_index('Date'), type='candle', volume=True, show_nontrading=True,
-             title='布林通道策略圖', ylabel='價格', ylabel_lower='成交量', style='yahoo')
-
-    # 繪製布林通道
-    plt.plot(stock['Middle_Band'], label='中軌', color='blue')
-    plt.plot(stock['Upper_Band'], label='上軌', color='red')
-    plt.plot(stock['Lower_Band'], label='下軌', color='green')
-    plt.legend()
-
-    plt.show()
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 10), gridspec_kw={'height_ratios': [3, 1]})
+    
+    # 上面的圖：價格走勢和布林通道
+    ax1.plot(stock['Date'], stock['Close'], label='Close Price', color='blue')
+    ax1.plot(stock['Date'], stock['Middle_Band'], label='Middle Band', linestyle='--')
+    ax1.plot(stock['Date'], stock['Upper_Band'], label='Upper Band', linestyle='--')
+    ax1.plot(stock['Date'], stock['Lower_Band'], label='Lower Band', linestyle='--')
+    ax1.fill_between(stock['Date'], stock['Upper_Band'], stock['Lower_Band'], alpha=0.2, color='gray')
+    ax1.set_title('Bollinger Bands')
+    ax1.set_ylabel('Price')
+    ax1.legend()
+    
+    # 下面的圖：成交量
+    ax2.bar(stock['Date'], stock['Volume'], color='gray')
+    ax2.set_xlabel('Date')
+    ax2.set_ylabel('Volume')
+    
+    plt.tight_layout()
+    st.pyplot(fig)
 
 def plot_kdj(stock):
-    # 繪製KDJ指標
-    fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(10, 8))
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 10), gridspec_kw={'height_ratios': [3, 1]})
     
-    axes[0].set_title('KDJ策略圖')
-    mpf.plot(stock.set_index('Date'), type='candle', ax=axes[0], volume=True, show_nontrading=True)
+    # 上面的圖：價格走勢
+    ax1.plot(stock['Date'], stock['Close'], label='Close Price', color='blue')
+    ax1.set_title('KDJ')
+    ax1.set_ylabel('Price')
     
-    axes[1].plot(stock['K'], label='K值', color='blue')
-    axes[1].plot(stock['D'], label='D值', color='red')
-    axes[1].plot(stock['J'], label='J值', color='green')
-    axes[1].legend()
-
+    # 下面的圖：KDJ指標
+    ax2.plot(stock['Date'], stock['K'], label='K', linestyle='--')
+    ax2.plot(stock['Date'], stock['D'], label='D', linestyle='--')
+    ax2.plot(stock['Date'], stock['J'], label='J', linestyle='--')
+    ax2.set_xlabel('Date')
+    ax2.set_ylabel('KDJ Value')
+    ax2.legend()
+    
     plt.tight_layout()
-    plt.show()
+    st.pyplot(fig)
 
 def plot_rsi(stock):
-    # 繪製RSI指標
-    fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(10, 8))
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 10), gridspec_kw={'height_ratios': [3, 1]})
     
-    axes[0].set_title('RSI策略圖')
-    mpf.plot(stock.set_index('Date'), type='candle', ax=axes[0], volume=True, show_nontrading=True)
+    # 上面的圖：價格走勢
+    ax1.plot(stock['Date'], stock['Close'], label='Close Price', color='blue')
+    ax1.set_title('RSI')
+    ax1.set_ylabel('Price')
     
-    axes[1].plot(stock['RSI'], label='RSI', color='blue')
-    axes[1].axhline(y=80, color='r', linestyle='--')
-    axes[1].axhline(y=20, color='g', linestyle='--')
-    axes[1].legend()
-
+    # 下面的圖：RSI指標
+    ax2.plot(stock['Date'], stock['RSI'], label='RSI', color='orange')
+    ax2.axhline(y=70, color='r', linestyle='--')
+    ax2.axhline(y=30, color='g', linestyle='--')
+    ax2.set_xlabel('Date')
+    ax2.set_ylabel('RSI Value')
+    ax2.legend(['RSI', 'Overbought', 'Oversold'])
+    
     plt.tight_layout()
-    plt.show()
+    st.pyplot(fig)
 
 def plot_macd(stock):
-    # 繪製MACD指標
-    fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(10, 8))
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 10), gridspec_kw={'height_ratios': [3, 1]})
     
-    axes[0].set_title('MACD策略圖')
-    mpf.plot(stock.set_index('Date'), type='candle', ax=axes[0], volume=True, show_nontrading=True)
+    # 上面的圖：價格走勢
+    ax1.plot(stock['Date'], stock['Close'], label='Close Price', color='blue')
+    ax1.set_title('MACD')
+    ax1.set_ylabel('Price')
     
-    axes[1].plot(stock['MACD'], label='MACD', color='blue')
-    axes[1].plot(stock['Signal_Line'], label='Signal Line', color='red')
-    axes[1].bar(stock.index, stock['Histogram'], color='gray', alpha=0.5)
-    axes[1].legend()
-
+    # 下面的圖：MACD指標和信號線
+    ax2.plot(stock['Date'], stock['MACD'], label='MACD', color='red')
+    ax2.plot(stock['Date'], stock['Signal_Line'], label='Signal Line', color='blue')
+    ax2.bar(stock['Date'], stock['Histogram'], label='Histogram', color='gray')
+    ax2.set_xlabel('Date')
+    ax2.set_ylabel('MACD')
+    ax2.legend()
+    
     plt.tight_layout()
-    plt.show()
+    st.pyplot(fig)
 
 def plot_donchian_channels(stock):
-    # 繪製唐奇安通道
-    fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(10, 8))
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 10), gridspec_kw={'height_ratios': [3, 1]})
     
-    axes[0].set_title('唐奇安通道策略圖')
-    mpf.plot(stock.set_index('Date'), type='candle', ax=axes[0], volume=True, show_nontrading=True)
+    # 上面的圖：價格走勢
+    ax1.plot(stock['Date'], stock['Close'], label='Close Price', color='blue')
+    ax1.plot(stock['Date'], stock['Donchian_High'], label='Donchian High', linestyle='--')
+    ax1.plot(stock['Date'], stock['Donchian_Low'], label='Donchian Low', linestyle='--')
+    ax1.fill_between(stock['Date'], stock['Donchian_High'], stock['Donchian_Low'], alpha=0.2, color='gray')
+    ax1.set_title('Donchian Channels')
+    ax1.set_ylabel('Price')
+    ax1.legend()
     
-    axes[0].plot(stock['Donchian_High'], label='高值通道', color='red')
-    axes[0].plot(stock['Donchian_Low'], label='低值通道', color='green')
-    axes[0].legend()
-
+    # 下面的圖：成交量
+    ax2.bar(stock['Date'], stock['Volume'], color='gray')
+    ax2.set_xlabel('Date')
+    ax2.set_ylabel('Volume')
+    
     plt.tight_layout()
-    plt.show()
+    st.pyplot(fig)
 
-# 定義交易策略
-def trading_strategy(stock, strategy_name):
-    # 根據不同的策略進行交易
-    if strategy_name == "Bollinger Bands":
-        stock['Position'] = np.where(stock['Close'] > stock['Upper_Band'], -1, np.nan)
-        stock['Position'] = np.where(stock['Close'] < stock['Lower_Band'], 1, stock['Position'])
-    elif strategy_name == "KDJ":
-        stock['Position'] = np.where(stock['K'] > stock['D'], 1, -1)
-    elif strategy_name == "RSI":
-        stock['Position'] = np.where(stock['RSI'] > 70, -1, np.nan)
-        stock['Position'] = np.where(stock['RSI'] < 30, 1, stock['Position'])
-    elif strategy_name == "MACD":
-        stock['Position'] = np.where(stock['MACD'] > stock['Signal_Line'], 1, -1)
-    elif strategy_name == "Donchian Channels":
-        stock['Position'] = np.where(stock['Close'] > stock['Donchian_High'].shift(1), 1, np.nan)
-        stock['Position'] = np.where(stock['Close'] < stock['Donchian_Low'].shift(1), -1, stock['Position'])
-    
-    return stock
-
-# 主程式
+# Streamlit App 部分
 def main():
-    st.title('股票交易策略回測與可視化')
+    st.title('Technical Analysis App')
     
-    # 使用 Streamlit 創建交互式界面
-    st.sidebar.header('設置')
-    stockname = st.sidebar.text_input('輸入股票代號（如AAPL）：', 'AAPL')
-    start_date = st.sidebar.date_input('開始日期：', datetime.date(2021, 1, 1))
-    end_date = st.sidebar.date_input('結束日期：', datetime.date(2021, 12, 31))
-    interval = st.sidebar.selectbox('K線週期：', ['1d', '1wk', '1mo'], index=0)
-    strategy_name = st.sidebar.selectbox('選擇交易策略：', ['Bollinger Bands', 'KDJ', 'RSI', 'MACD', 'Donchian Channels'], index=0)
+    # 使用者輸入股票代號和日期範圍
+    stockname = st.text_input("請輸入股票代號 (例如 AAPL):")
+    start_date = st.date_input("請選擇開始日期:")
+    end_date = st.date_input("請選擇結束日期:")
     
-    # 讀取股票數據
-    stock = load_stock_data(stockname, start_date, end_date, interval)
-    if stock is None:
-        return
-    
-    # 計算技術指標
-    if strategy_name == 'Bollinger Bands':
-        stock = calculate_bollinger_bands(stock)
-        plot_bollinger_bands(stock)
-    elif strategy_name == 'KDJ':
-        stock = calculate_kdj(stock)
-        plot_kdj(stock)
-    elif strategy_name == 'RSI':
-        stock = calculate_rsi(stock)
-        plot_rsi(stock)
-    elif strategy_name == 'MACD':
-        stock = calculate_macd(stock)
-        plot_macd(stock)
-    elif strategy_name == 'Donchian Channels':
-        stock = calculate_donchian_channels(stock)
-        plot_donchian_channels(stock)
-    
-    # 回測交易策略
-    stock = trading_strategy(stock, strategy_name)
-    
-    # 顯示股票數據和交易信號
-    st.subheader('股票數據和交易信號')
-    st.write(stock)
+    if st.button('執行'):
+        # 讀取股票數據
+        stock = load_stock_data(stockname, start_date, end_date, '1d')
+        
+        if stock is not None:
+            # 計算技術指標
+            stock = calculate_bollinger_bands(stock)
+            stock = calculate_kdj(stock)
+            stock = calculate_rsi(stock)
+            stock = calculate_macd(stock)
+            stock = calculate_donchian_channels(stock)
+            
+            # 顯示價格走勢圖和相關技術指標
+            plot_bollinger_bands(stock)
+            plot_kdj(stock)
+            plot_rsi(stock)
+            plot_macd(stock)
+            plot_donchian_channels(stock)
 
+# 執行應用
 if __name__ == '__main__':
     main()
