@@ -117,22 +117,16 @@ def plot_rsi(stock):
     fig_rsi = go.Figure()
     fig_rsi.add_trace(go.Scatter(x=stock['Date'], y=stock['RSI'], line=dict(color='purple', width=1), name='RSI'))
     
-    # 標記超買區和超賣區
-    fig_rsi.add_trace(go.Scatter(x=stock[stock['Overbought'] == True]['Date'], y=stock[stock['Overbought'] == True]['RSI'],
-                                 mode='markers', marker=dict(color='red', size=8, symbol='triangle-up'), name='超買'))
-    fig_rsi.add_trace(go.Scatter(x=stock[stock['Oversold'] == True]['Date'], y=stock[stock['Oversold'] == True]['RSI'],
-                                 mode='markers', marker=dict(color='blue', size=8, symbol='triangle-down'), name='超賣'))
-    
-    # 加入超買超賣區域的標示
+    # 加入超買區和超賣區的背景色
     fig_rsi.add_shape(type="rect", xref="paper", yref="y",
                       x0=0, y0=80, x1=1, y1=100,
-                      fillcolor="rgba(255, 0, 0, 0.3)",  # 使用紅色半透明填滿
+                      fillcolor="rgba(255, 0, 0, 0.3)",  # 紅色半透明填充
                       layer="below", line_width=0,
                       name="超買區域")
     
     fig_rsi.add_shape(type="rect", xref="paper", yref="y",
                       x0=0, y0=0, x1=1, y1=20,
-                      fillcolor="rgba(0, 0, 255, 0.3)",  # 使用藍色半透明填滿
+                      fillcolor="rgba(0, 0, 255, 0.3)",  # 藍色半透明填充
                       layer="below", line_width=0,
                       name="超賣區域")
     
@@ -140,6 +134,7 @@ def plot_rsi(stock):
                           xaxis_title='日期',
                           yaxis_title='數值')
     st.plotly_chart(fig_rsi)
+
 
 # 繪製MACD指標
 def plot_macd(stock):
