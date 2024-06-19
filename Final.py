@@ -180,7 +180,7 @@ def main():
             plot_stock_data(stock, strategy_name)
             # 計算並顯示交易績效
             st.subheader("交易績效 - 布林通道策略")
-            trade_record, profit, total_profit, win_rate, acc_loss, mdd = calculate_performance(stock)
+            trade_record, profit, total_profit, win_rate, acc_loss, mdd = calculate_bollinger_performance(stock)
             st.write(f"交易紀錄: {trade_record}")
             st.write(f"損益: {profit}")
             st.write(f"總損益: {total_profit}")
@@ -194,7 +194,7 @@ def main():
             plot_kdj(stock)
             # 計算並顯示交易績效
             st.subheader("交易績效 - KDJ策略")
-            trade_record, profit, total_profit, win_rate, acc_loss, mdd = calculate_performance(stock)
+            trade_record, profit, total_profit, win_rate, acc_loss, mdd = calculate_kdj_performance(stock)
             st.write(f"交易紀錄: {trade_record}")
             st.write(f"損益: {profit}")
             st.write(f"總損益: {total_profit}")
@@ -208,7 +208,7 @@ def main():
             plot_rsi(stock)
             # 計算並顯示交易績效
             st.subheader("交易績效 - RSI策略")
-            trade_record, profit, total_profit, win_rate, acc_loss, mdd = calculate_performance(stock)
+            trade_record, profit, total_profit, win_rate, acc_loss, mdd = calculate_rsi_performance(stock)
             st.write(f"交易紀錄: {trade_record}")
             st.write(f"損益: {profit}")
             st.write(f"總損益: {total_profit}")
@@ -224,7 +224,7 @@ def main():
             plot_macd(stock)
             # 計算並顯示交易績效
             st.subheader("交易績效 - MACD策略")
-            trade_record, profit, total_profit, win_rate, acc_loss, mdd = calculate_performance(stock)
+            trade_record, profit, total_profit, win_rate, acc_loss, mdd = calculate_macd_performance(stock)
             st.write(f"交易紀錄: {trade_record}")
             st.write(f"損益: {profit}")
             st.write(f"總損益: {total_profit}")
@@ -238,7 +238,7 @@ def main():
             plot_stock_data(stock, strategy_name)
             # 計算並顯示交易績效
             st.subheader("交易績效 - 唐奇安通道策略")
-            trade_record, profit, total_profit, win_rate, acc_loss, mdd = calculate_performance(stock)
+            trade_record, profit, total_profit, win_rate, acc_loss, mdd = calculate_donchian_performance(stock)
             st.write(f"交易紀錄: {trade_record}")
             st.write(f"損益: {profit}")
             st.write(f"總損益: {total_profit}")
@@ -246,15 +246,59 @@ def main():
             st.write(f"最大連續虧損: {acc_loss}")
             st.write(f"最大資金回落 (MDD): {mdd}")
 
-# 計算交易績效的輔助函數
-def calculate_performance(stock):
-    # 簡單示範：計算交易紀錄和績效指標
-    trade_record = "示範交易紀錄"
-    profit = 1000  # 示範損益
+# 計算布林通道交易績效的函數
+def calculate_bollinger_performance(stock):
+    # 假設這裡是計算布林通道策略的交易績效的地方
+    trade_record = "布林通道交易紀錄"
+    profit = 1200  # 示範損益
+    total_profit = 6000  # 示範總損益
+    win_rate = 0.68  # 示範勝率
+    acc_loss = 4  # 示範最大連續虧損
+    mdd = 1000  # 示範最大資金回落
+    return trade_record, profit, total_profit, win_rate, acc_loss, mdd
+
+# 計算KDJ交易績效的函數
+def calculate_kdj_performance(stock):
+    # 假設這裡是計算KDJ策略的交易績效的地方
+    trade_record = "KDJ交易紀錄"
+    profit = 800  # 示範損益
     total_profit = 5000  # 示範總損益
     win_rate = 0.65  # 示範勝率
     acc_loss = 3  # 示範最大連續虧損
     mdd = 800  # 示範最大資金回落
+    return trade_record, profit, total_profit, win_rate, acc_loss, mdd
+
+# 計算RSI交易績效的函數
+def calculate_rsi_performance(stock):
+    # 假設這裡是計算RSI策略的交易績效的地方
+    trade_record = "RSI交易紀錄"
+    profit = 1000  # 示範損益
+    total_profit = 7000  # 示範總損益
+    win_rate = 0.70  # 示範勝率
+    acc_loss = 5  # 示範最大連續虧損
+    mdd = 1200  # 示範最大資金回落
+    return trade_record, profit, total_profit, win_rate, acc_loss, mdd
+
+# 計算MACD交易績效的函數
+def calculate_macd_performance(stock):
+    # 假設這裡是計算MACD策略的交易績效的地方
+    trade_record = "MACD交易紀錄"
+    profit = 1500  # 示範損益
+    total_profit = 8000  # 示範總損益
+    win_rate = 0.72  # 示範勝率
+    acc_loss = 3  # 示範最大連續虧損
+    mdd = 900  # 示範最大資金回落
+    return trade_record, profit, total_profit, win_rate, acc_loss, mdd
+
+# 計算唐奇安通道交易績效的函數
+def calculate_donchian_performance(stock):
+    # 假設這裡是計算唐奇安通道策略的交易績效的地方
+    trade_record = "唐奇安通道交易紀錄"
+    profit = 900  # 示範損益
+    total_profit = 5500  # 示範總損益
+    win_rate = 0.67  # 示範勝率
+    acc_loss = 4  # 示範最大連續虧損
+    mdd = 950  # 示範最大資金回落
     return trade_record, profit, total_profit, win_rate, acc_loss, mdd
 
 if __name__ == "__main__":
