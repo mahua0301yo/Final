@@ -16,6 +16,22 @@ def load_stock_data(stockname, start_date, end_date, interval):
     stock.reset_index(inplace=True)
     return stock
 
+# 定義函數來計算布林通道指標
+def calculate_bollinger_bands(stock, period=20, std_dev=2):
+    stock['Middle_Band'] = stock['Close'].rolling(window=period).mean()
+    stock['Upper_Band'] = stock['Middle_Band'] + std_dev * stock['Close'].rolling(window=period).std()
+    stock['Lower_Band'] = stock['Middle_Band'] - std_dev * stock['Close'].rolling(window=period).std()
+    return stock
+
+# 定義函數來計算MACD指標
+def calculate_macd(stock, short_period=12, long_period=26, signal_period=9):
+    stock['Short_EMA'] = stock['Close'].ewm(span=short_period, adjust=False).mean()
+    stock['Long_EMA'] = stock['Close'].ewm(span=long_period, adjust=False).mean()
+    stock['MACD'] = stock['Short_EMA'] - stock['Long_EMA']
+    stock['Signal_Line'] = stock['MACD'].ewm(span=signal_period, adjust=False).mean()
+    stock['MACD_Histogram'] = stock['MACD'] - stock['Signal_Line']
+    return stock
+
 # 定義函數來計算KDJ指標
 def calculate_kdj(stock, period=14, m=3):
     # 計算N日內最低價和最高價
@@ -29,61 +45,192 @@ def calculate_kdj(stock, period=14, m=3):
     stock['K'] = stock['RSV'].ewm(span=m).mean()
     stock['D'] = stock['K'].ewm(span=m).mean()
     stock['J'] = 3 * stock['K'] - 2 * stock['D']
+
+    return stock
+
+
+# 定義函數來計算RSI指標
+def calculate_rsi(stock, period=14):
+    delta = stock['Close'].diff(1)
+    gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
+    rs = gain / loss
+    stock['RSI'] = 100 - (100 / (1 + rs))
+    stock['Overbought'] = 80
+    stock['Oversold'] = 20
     return stock
 
 # 定義函數來繪製股票數據和技術指標
 def plot_stock_data(stock, strategy_name):
     fig = go.Figure()
-    
-    # 添加 OHLC 圖
-    fig.add_trace(go.Candlestick(x=stock['Date'],
-                                 open=stock['Open'],
-                                 high=stock['High'],
-                                 low=stock['Low'],
-                                 close=stock['Close'],
-                                 name='OHLC'))
-    
-    # 添加成交量柱狀圖
-    fig.add_trace(go.Bar(x=stock['Date'],
-                         y=stock['Volume'],
-                         name='Volume',
-                         marker_color='lightgray',
-                         yaxis='y2'))
-    
-    if strategy_name == "KDJ":
-        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['K'], mode='lines', name='K'))
-        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['D'], mode='lines', name='D'))
-        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['J'], mode='lines', name='J'))
-    
-    # 設定圖表的 layout
+
+    # 計算 K 線圖的顯示範圍
+    price_range = (stock['Close'].max() - stock['Close'].min()) * 0.1
+    ymin = stock['Close'].min() - price_range
+    ymax = stock['Close'].max() + price_range
+
+    # 繪製 K 線圖
+    fig.add_trace(go.Candlestick(
+        x=stock['Date'],
+        open=stock['Open'],
+        high=stock['High'],
+        low=stock['Low'],
+        close=stock['Close'],
+        name='OHLC',
+        yaxis='y'  # 使用第一個 y 軸
+    ))
+
+    if strategy_name == 'Bollinger Bands':
+        fig.add_trace(go.Scatter(
+            x=stock['Date'],
+            y=stock['Middle_Band'],
+            mode='lines',
+            name='Middle Band'
+        ))
+        fig.add_trace(go.Scatter(
+            x=stock['Date'],
+            y=stock['Upper_Band'],
+            mode='lines',
+            name='Upper Band'
+        ))
+        fig.add_trace(go.Scatter(
+            x=stock['Date'],
+            y=stock['Lower_Band'],
+            mode='lines',
+            name='Lower Band'
+        ))
+    elif strategy_name == 'MACD':
+        # 繪製 12 週期和 26 週期的 EMA
+        fig.add_trace(go.Scatter(
+            x=stock['Date'],
+            y=stock['Short_EMA'],
+            mode='lines',
+            name='12-period EMA',
+            line=dict(color='magenta')
+        ))
+        fig.add_trace(go.Scatter(
+            x=stock['Date'],
+            y=stock['Long_EMA'],
+            mode='lines',
+            name='26-period EMA',
+            line=dict(color='purple')
+        ))
+        # 添加 MACD 和 Signal Line
+        fig.add_trace(go.Scatter(
+            x=stock['Date'],
+            y=stock['MACD'],
+            mode='lines',
+            name='MACD',
+            line=dict(color='blue')
+        ))
+        fig.add_trace(go.Scatter(
+            x=stock['Date'],
+            y=stock['Signal_Line'],
+            mode='lines',
+            name='MACD Signal Line',
+            line=dict(color='red')
+        ))
+        # 添加 MACD Histogram
+        fig.add_trace(go.Bar(
+            x=stock['Date'],
+            y=stock['MACD_Histogram'],
+            name='MACD Histogram',
+            marker_color='grey'
+        ))
+    elif strategy_name == 'KDJ':
+        fig.add_trace(go.Scatter(
+            x=stock['Date'],
+            y=stock['K'],
+            mode='lines',
+            name='K',
+            line=dict(color='blue')
+        ))
+        fig.add_trace(go.Scatter(
+            x=stock['Date'],
+            y=stock['D'],
+            mode='lines',
+            name='D',
+            line=dict(color='orange')
+        ))
+        fig.add_trace(go.Scatter(
+            x=stock['Date'],
+            y=stock['J'],
+            mode='lines',
+            name='J',
+            line=dict(color='purple')
+        ))
+    elif strategy_name == 'RSI':
+        fig.add_trace(go.Scatter(
+            x=stock['Date'],
+            y=stock['RSI'],
+            mode='lines',
+            name='RSI',
+            line=dict(color='green')
+        ))
+        fig.add_trace(go.Scatter(
+            x=stock['Date'],
+            y=stock['Overbought'],
+            mode='lines',
+            name='Overbought',
+            line=dict(color='red', dash='dash')
+        ))
+        fig.add_trace(go.Scatter(
+            x=stock['Date'],
+            y=stock['Oversold'],
+            mode='lines',
+            name='Oversold',
+            line=dict(color='blue', dash='dash')
+        ))
+
+    # 添加交易量圖
+    fig.add_trace(go.Bar(
+        x=stock['Date'],
+        y=stock['Volume'],
+        name='Volume',
+        marker_color='gray',
+        opacity=0.5,
+        yaxis='y2'  # 使用第二個 y 軸
+    ))
+
     fig.update_layout(
         title=f'{strategy_name} Analysis',
         xaxis_title='Date',
         yaxis_title='Price',
+        yaxis=dict(
+            title='Price',
+            range=[ymin, ymax]
+        ),
         yaxis2=dict(
             title='Volume',
             overlaying='y',
-            side='right',
-            showgrid=False,
-            tickformat=','
-        ),
-        legend=dict(x=0, y=1.2),
-        height=800,
+            side='right'
+        )
     )
-    
+
     st.plotly_chart(fig)
 
-# 主函數
+# Streamlit 應用程式
 def main():
-    st.sidebar.header("參數設定")
-    stockname = st.sidebar.text_input("輸入股票代號", value="AAPL")
+    st.title('股票技術指標分析')
+
+    # 用戶輸入
+    stockname = st.sidebar.text_input("輸入股票代號", value='AAPL')
     start_date = st.sidebar.date_input("選擇開始日期", value=pd.to_datetime("2023-01-01"))
     end_date = st.sidebar.date_input("選擇結束日期", value=pd.to_datetime("2023-12-31"))
     interval = st.sidebar.selectbox("選擇數據頻率", options=['1d', '1wk', '1mo'], index=0)
-    strategy_name = st.sidebar.selectbox("選擇交易策略", options=["KDJ"], index=0)
+    strategy_name = st.sidebar.selectbox("選擇交易策略", options=["Bollinger Bands", "MACD", "KDJ", "RSI"], index=0)
 
-    if strategy_name == "KDJ":
+    if strategy_name == "Bollinger Bands":
+        bollinger_period = st.sidebar.slider("布林通道週期", min_value=5, max_value=50, value=20, step=1)
+        bollinger_std = st.sidebar.slider("布林通道標準差倍數", min_value=1.0, max_value=3.0, value=2.0, step=0.1)
+    elif strategy_name == "MACD":
+        macd_short_period = st.sidebar.number_input("輸入MACD短期EMA週期", min_value=1, max_value=50, value=12, step=1)
+        macd_long_period = st.sidebar.number_input("輸入MACD長期EMA週期", min_value=1, max_value=50, value=26, step=1)
+        macd_signal_period = st.sidebar.number_input("輸入MACD信號線週期", min_value=1, max_value=50, value=9, step=1)
+    elif strategy_name == "KDJ":
         kdj_period = st.sidebar.slider("KDJ週期", min_value=5, max_value=50, value=14, step=1)
+    elif strategy_name == "RSI":
+        rsi_period = st.sidebar.slider("RSI週期", min_value=5, max_value=50, value=14, step=1)
 
     # 讀取股票數據
     stock = load_stock_data(stockname, start_date, end_date, interval)
@@ -92,8 +239,14 @@ def main():
         st.write(stock.head())
 
         # 計算技術指標並繪圖
-        if strategy_name == "KDJ":
+        if strategy_name == "Bollinger Bands":
+            stock = calculate_bollinger_bands(stock, period=bollinger_period, std_dev=bollinger_std)
+        elif strategy_name == "MACD":
+            stock = calculate_macd(stock, short_period=macd_short_period, long_period=macd_long_period, signal_period=macd_signal_period)
+        elif strategy_name == "KDJ":
             stock = calculate_kdj(stock, period=kdj_period)
+        elif strategy_name == "RSI":
+            stock = calculate_rsi(stock, period=rsi_period)
 
         plot_stock_data(stock, strategy_name)
 
