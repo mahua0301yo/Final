@@ -33,21 +33,14 @@ def calculate_macd(stock, short_period=12, long_period=26, signal_period=9):
     return stock
 
 # 定義函數來計算KDJ指標
-def calculate_kdj(stock, period=14, m=3):
-    # 計算N日內最低價和最高價
+def calculate_kdj(stock, period=14):
     low_min = stock['Low'].rolling(window=period).min()
     high_max = stock['High'].rolling(window=period).max()
-
-    # 計算RSV
-    stock['RSV'] = (stock['Close'] - low_min) / (high_max - low_min) * 100
-
-    # 計算K、D、J值
-    stock['K'] = stock['RSV'].ewm(span=m).mean()
-    stock['D'] = stock['K'].ewm(span=m).mean()
+    rsv = (stock['Close'] - low_min) / (high_max - low_min) * 100
+    stock['K'] = rsv.ewm(com=2).mean()
+    stock['D'] = stock['K'].ewm(com=2).mean()
     stock['J'] = 3 * stock['K'] - 2 * stock['D']
-
     return stock
-
 
 # 定義函數來計算RSI指標
 def calculate_rsi(stock, period=14):
@@ -56,18 +49,11 @@ def calculate_rsi(stock, period=14):
     loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
     rs = gain / loss
     stock['RSI'] = 100 - (100 / (1 + rs))
-    stock['Overbought'] = 80
-    stock['Oversold'] = 20
     return stock
 
 # 定義函數來繪製股票數據和技術指標
 def plot_stock_data(stock, strategy_name):
     fig = go.Figure()
-
-    # 計算 K 線圖的顯示範圍
-    price_range = (stock['Close'].max() - stock['Close'].min()) * 0.1
-    ymin = stock['Close'].min() - price_range
-    ymax = stock['Close'].max() + price_range
 
     # 繪製 K 線圖
     fig.add_trace(go.Candlestick(
@@ -76,8 +62,7 @@ def plot_stock_data(stock, strategy_name):
         high=stock['High'],
         low=stock['Low'],
         close=stock['Close'],
-        name='OHLC',
-        yaxis='y'  # 使用第一個 y 軸
+        name='OHLC'
     ))
 
     if strategy_name == 'Bollinger Bands':
@@ -115,28 +100,34 @@ def plot_stock_data(stock, strategy_name):
             name='26-period EMA',
             line=dict(color='purple')
         ))
-        # 添加 MACD 和 Signal Line
-        fig.add_trace(go.Scatter(
+        # 添加 MACD 和 Signal Line 圖
+        macd_fig = go.Figure()
+        macd_fig.add_trace(go.Scatter(
             x=stock['Date'],
             y=stock['MACD'],
             mode='lines',
             name='MACD',
             line=dict(color='blue')
         ))
-        fig.add_trace(go.Scatter(
+        macd_fig.add_trace(go.Scatter(
             x=stock['Date'],
             y=stock['Signal_Line'],
             mode='lines',
             name='MACD Signal Line',
             line=dict(color='red')
         ))
-        # 添加 MACD Histogram
-        fig.add_trace(go.Bar(
+        macd_fig.add_trace(go.Bar(
             x=stock['Date'],
             y=stock['MACD_Histogram'],
             name='MACD Histogram',
             marker_color='grey'
         ))
+        macd_fig.update_layout(
+            title='MACD',
+            xaxis_title='Date',
+            yaxis_title='MACD Value'
+        )
+        st.plotly_chart(macd_fig)
     elif strategy_name == 'KDJ':
         fig.add_trace(go.Scatter(
             x=stock['Date'],
@@ -167,46 +158,10 @@ def plot_stock_data(stock, strategy_name):
             name='RSI',
             line=dict(color='green')
         ))
-        fig.add_trace(go.Scatter(
-            x=stock['Date'],
-            y=stock['Overbought'],
-            mode='lines',
-            name='Overbought',
-            line=dict(color='red', dash='dash')
-        ))
-        fig.add_trace(go.Scatter(
-            x=stock['Date'],
-            y=stock['Oversold'],
-            mode='lines',
-            name='Oversold',
-            line=dict(color='blue', dash='dash')
-        ))
 
-    # 添加交易量圖
-    fig.add_trace(go.Bar(
-        x=stock['Date'],
-        y=stock['Volume'],
-        name='Volume',
-        marker_color='gray',
-        opacity=0.5,
-        yaxis='y2'  # 使用第二個 y 軸
-    ))
-
-    fig.update_layout(
-        title=f'{strategy_name} Analysis',
-        xaxis_title='Date',
-        yaxis_title='Price',
-        yaxis=dict(
-            title='Price',
-            range=[ymin, ymax]
-        ),
-        yaxis2=dict(
-            title='Volume',
-            overlaying='y',
-            side='right'
-        )
-    )
-
+    fig.update_layout(title=f'{strategy_name} Analysis',
+                      xaxis_title='Date',
+                      yaxis_title='Price')
     st.plotly_chart(fig)
 
 # Streamlit 應用程式
