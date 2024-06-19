@@ -43,6 +43,17 @@ def calculate_rsi(stock, period=14):
     stock['RSI'] = 100 - (100 / (1 + rs))
     return stock
 
+# 定義函數來計算MACD指標
+def calculate_macd(stock, short_period=12, long_period=26, signal_period=9):
+    exp1 = stock['Close'].ewm(span=short_period, adjust=False).mean()
+    exp2 = stock['Close'].ewm(span=long_period, adjust=False).mean()
+    macd = exp1 - exp2
+    signal = macd.ewm(span=signal_period, adjust=False).mean()
+    stock['MACD'] = macd
+    stock['MACD_Signal'] = signal
+    stock['MACD_Histogram'] = macd - signal
+    return stock
+
 # 繪製股票數據和指標圖
 def plot_stock_data(stock, strategy_name):
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True,
@@ -62,6 +73,13 @@ def plot_stock_data(stock, strategy_name):
     if 'Lower_Band' in stock.columns:
         fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Lower_Band'], line=dict(color='red', width=1), name='下軌'), row=1, col=1)
     
+    if 'MACD' in stock.columns:
+        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['MACD'], line=dict(color='purple', width=1), name='MACD'), row=1, col=1)
+    if 'MACD_Signal' in stock.columns:
+        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['MACD_Signal'], line=dict(color='orange', width=1), name='MACD Signal'), row=1, col=1)
+    if 'MACD_Histogram' in stock.columns:
+        fig.add_trace(go.Bar(x=stock['Date'], y=stock['MACD_Histogram'], name='MACD Histogram'), row=1, col=1)
+
     fig.add_trace(go.Bar(x=stock['Date'], y=stock['amount'], name='交易量'), row=2, col=1)
 
     fig.update_layout(title=f"{strategy_name}策略 - 股票價格與交易量",
@@ -121,6 +139,7 @@ def main():
 
         if strategy_name == "Bollinger Bands":
             stock = calculate_bollinger_bands(stock, period=bollinger_period, std_dev=bollinger_std)
+            stock = calculate_macd(stock)
             plot_stock_data(stock, strategy_name)
         elif strategy_name == "KDJ":
             stock = calculate_kdj(stock, period=kdj_period)
