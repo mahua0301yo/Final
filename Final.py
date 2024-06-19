@@ -54,40 +54,46 @@ def calculate_rsi(stock, period=14):
 # 繪製股票數據的主函數
 def plot_stock_data(stock, strategy_name):
     fig = go.Figure()
-    
+
     fig.add_trace(go.Candlestick(x=stock['Date'], open=stock['Open'], high=stock['High'], low=stock['Low'], close=stock['Close'], name='OHLC'))
 
     if strategy_name == "Bollinger Bands":
         fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Upper_Band'], line=dict(color='red', width=1), name='Upper Band'))
         fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Middle_Band'], line=dict(color='blue', width=1), name='Middle Band'))
         fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Lower_Band'], line=dict(color='red', width=1), name='Lower Band'))
-    elif strategy_name == "MACD":
-        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['MACD'], line=dict(color='blue', width=1), name='MACD'))
-        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Signal_Line'], line=dict(color='red', width=1), name='Signal Line'))
-        fig.add_trace(go.Bar(x=stock['Date'], y=stock['MACD_Histogram'], name='MACD Histogram'))
-    elif strategy_name == "KDJ":
-        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['K'], line=dict(color='blue', width=1), name='K'))
-        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['D'], line=dict(color='red', width=1), name='D'))
-        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['J'], line=dict(color='green', width=1), name='J'))
-    elif strategy_name == "RSI":
-        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['RSI'], line=dict(color='blue', width=1), name='RSI'))
 
     fig.update_layout(title=f"{strategy_name} 指標圖", xaxis_title='日期', yaxis_title='價格', xaxis_rangeslider_visible=False)
+    st.plotly_chart(fig)
+
+# 繪製MACD圖表
+def plot_macd(stock):
+    fig = go.Figure()
+
+    fig.add_trace(go.Candlestick(x=stock['Date'], open=stock['Open'], high=stock['High'], low=stock['Low'], close=stock['Close'], name='OHLC'))
+    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['MACD'], line=dict(color='blue', width=1), name='MACD'))
+    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Signal_Line'], line=dict(color='red', width=1), name='Signal Line'))
+    fig.add_trace(go.Bar(x=stock['Date'], y=stock['MACD_Histogram'], name='MACD Histogram'))
+
+    fig.update_layout(title="MACD 指標圖", xaxis_title='日期', yaxis_title='MACD 值', xaxis_rangeslider_visible=False)
     st.plotly_chart(fig)
 
 # 繪製KDJ圖表
 def plot_kdj(stock):
     fig = go.Figure()
+
+    fig.add_trace(go.Candlestick(x=stock['Date'], open=stock['Open'], high=stock['High'], low=stock['Low'], close=stock['Close'], name='OHLC'))
     fig.add_trace(go.Scatter(x=stock['Date'], y=stock['K'], line=dict(color='blue', width=1), name='K'))
     fig.add_trace(go.Scatter(x=stock['Date'], y=stock['D'], line=dict(color='red', width=1), name='D'))
     fig.add_trace(go.Scatter(x=stock['Date'], y=stock['J'], line=dict(color='green', width=1), name='J'))
-    
+
     fig.update_layout(title="KDJ 指標圖", xaxis_title='日期', yaxis_title='KDJ 值', xaxis_rangeslider_visible=False)
     st.plotly_chart(fig)
 
 # 繪製RSI圖表
 def plot_rsi(stock):
     fig = go.Figure()
+
+    fig.add_trace(go.Candlestick(x=stock['Date'], open=stock['Open'], high=stock['High'], low=stock['Low'], close=stock['Close'], name='OHLC'))
     fig.add_trace(go.Scatter(x=stock['Date'], y=stock['RSI'], line=dict(color='blue', width=1), name='RSI'))
     fig.add_shape(type="line", x0=stock['Date'].min(), y0=80, x1=stock['Date'].max(), y1=80, line=dict(color="red", width=2, dash="dash"))
     fig.add_shape(type="line", x0=stock['Date'].min(), y0=20, x1=stock['Date'].max(), y1=20, line=dict(color="green", width=2, dash="dash"))
@@ -98,7 +104,7 @@ def plot_rsi(stock):
 # 主函數
 def main():
     st.title("股票技術指標分析")
-    
+
     stockname = st.sidebar.text_input("輸入股票代號", value='AAPL')
     start_date = st.sidebar.date_input("選擇開始日期", value=pd.to_datetime("2023-01-01"))
     end_date = st.sidebar.date_input("選擇結束日期", value=pd.to_datetime("2023-12-31"))
@@ -129,7 +135,7 @@ def main():
             plot_stock_data(stock, strategy_name)
         elif strategy_name == "MACD":
             stock = calculate_macd(stock, short_period=macd_short_period, long_period=macd_long_period, signal_period=macd_signal_period)
-            plot_stock_data(stock, strategy_name)
+            plot_macd(stock)
         elif strategy_name == "KDJ":
             stock = calculate_kdj(stock, period=kdj_period)
             plot_kdj(stock)
