@@ -183,7 +183,7 @@ def main():
 
     # 選擇資料區間
     st.sidebar.subheader("選擇資料區間")
-    start_date = st.sidebar.date_input('選擇開始日期', datetime.date(2020, 1, 1))
+    start_date = st.sidebar.date_input('選擇開始日期', datetime.date(2022, 1, 1))
     end_date = st.sidebar.date_input('選擇結束日期(若日期設未來，會顯示目前最新日期)', datetime.date(2100, 1, 1))
     stockname = st.sidebar.text_input('請輸入股票代號 (例: 2610.TW,國外股票或期貨代號請至Yahoo Finance查詢)', '2610.TW')
 
