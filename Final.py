@@ -105,34 +105,28 @@ def plot_stock_data(stock, strategy_name):
             name='26-period EMA',
             line=dict(color='purple')
         ))
-        # 添加 MACD 和 Signal Line 圖
-        macd_fig = go.Figure()
-        macd_fig.add_trace(go.Scatter(
+        # 添加 MACD 和 Signal Line
+        fig.add_trace(go.Scatter(
             x=stock['Date'],
             y=stock['MACD'],
             mode='lines',
             name='MACD',
             line=dict(color='blue')
         ))
-        macd_fig.add_trace(go.Scatter(
+        fig.add_trace(go.Scatter(
             x=stock['Date'],
             y=stock['Signal_Line'],
             mode='lines',
             name='MACD Signal Line',
             line=dict(color='red')
         ))
-        macd_fig.add_trace(go.Bar(
+        # 添加 MACD Histogram
+        fig.add_trace(go.Bar(
             x=stock['Date'],
             y=stock['MACD_Histogram'],
             name='MACD Histogram',
             marker_color='grey'
         ))
-        macd_fig.update_layout(
-            title='MACD',
-            xaxis_title='Date',
-            yaxis_title='MACD Value'
-        )
-        st.plotly_chart(macd_fig)
     elif strategy_name == 'KDJ':
         fig.add_trace(go.Scatter(
             x=stock['Date'],
