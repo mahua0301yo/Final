@@ -11,4 +11,3 @@ mplfinance
 shioaji
 pynacl
 yfinance
-itertools
