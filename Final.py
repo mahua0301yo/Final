@@ -2,7 +2,8 @@
 import yfinance as yf
 import pandas as pd
 import streamlit as st
-import matplotlib.pyplot as plt
+import plotly.graph_objs as go
+from plotly.subplots import make_subplots
 import numpy as np
 import datetime
 
@@ -66,107 +67,68 @@ def calculate_donchian_channels(stock, period=20):
 
 # 定義單獨的繪圖函數
 def plot_bollinger_bands(stock):
-    fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, sharex=True, figsize=(12, 8))
+    fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.1,
+                        subplot_titles=("布林通道", "成交量"))
 
-    # 上面的圖：價格走勢和布林通道
-    ax1.plot(stock['Date'], stock['Close'], label='Close Price', color='blue')
-    ax1.plot(stock['Date'], stock['Middle_Band'], label='Middle Band', linestyle='--')
-    ax1.plot(stock['Date'], stock['Upper_Band'], label='Upper Band', linestyle='--')
-    ax1.plot(stock['Date'], stock['Lower_Band'], label='Lower Band', linestyle='--')
-    ax1.fill_between(stock['Date'], stock['Upper_Band'], stock['Lower_Band'], alpha=0.2, color='gray')
-    ax1.set_title('Bollinger Bands')
-    ax1.set_ylabel('Price')
-    ax1.legend()
+    fig.add_trace(go.Candlestick(x=stock['Date'], open=stock['Open'], high=stock['High'],
+                                 low=stock['Low'], close=stock['Close'], name='K線圖'), row=1, col=1)
+    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Middle_Band'], mode='lines', name='中軌'), row=1, col=1)
+    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Upper_Band'], mode='lines', name='上軌'), row=1, col=1)
+    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Lower_Band'], mode='lines', name='下軌'), row=1, col=1)
+    fig.add_trace(go.Bar(x=stock['Date'], y=stock['Volume'], name='成交量'), row=2, col=1)
 
-    # 下面的圖：成交量
-    ax2.bar(stock['Date'], stock['Volume'], color='gray')
-    ax2.set_xlabel('Date')
-    ax2.set_ylabel('Volume')
-
-    plt.tight_layout()
-    st.pyplot(fig)
+    fig.update_layout(title="布林通道策略圖", xaxis_title='日期', yaxis_title='價格')
+    st.plotly_chart(fig)
 
 def plot_kdj(stock):
-    fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, sharex=True, figsize=(12, 8))
+    fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.1,
+                        subplot_titles=("KDJ指標", "KDJ值"))
 
-    # 上面的圖：價格走勢和KDJ指標
-    ax1.plot(stock['Date'], stock['Close'], label='Close Price', color='blue')
-    ax1.set_title('KDJ Indicator')
-    ax1.set_ylabel('Price')
-    ax1.legend()
+    fig.add_trace(go.Candlestick(x=stock['Date'], open=stock['Open'], high=stock['High'],
+                                 low=stock['Low'], close=stock['Close'], name='K線圖'), row=1, col=1)
+    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['K'], mode='lines', name='K值'), row=2, col=1)
+    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['D'], mode='lines', name='D值'), row=2, col=1)
+    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['J'], mode='lines', name='J值'), row=2, col=1)
 
-    ax2.plot(stock['Date'], stock['K'], label='K', color='red')
-    ax2.plot(stock['Date'], stock['D'], label='D', color='green')
-    ax2.plot(stock['Date'], stock['J'], label='J', color='blue')
-    ax2.fill_between(stock['Date'], 0, 20, where=stock['Overbought'], facecolor='red', alpha=0.3)
-    ax2.fill_between(stock['Date'], 80, 100, where=stock['Oversold'], facecolor='green', alpha=0.3)
-    ax2.set_title('KDJ Values')
-    ax2.set_xlabel('Date')
-    ax2.set_ylabel('KDJ')
-    ax2.legend()
-
-    plt.tight_layout()
-    st.pyplot(fig)
+    fig.update_layout(title="KDJ策略圖", xaxis_title='日期', yaxis_title='價格')
+    st.plotly_chart(fig)
 
 def plot_rsi(stock):
-    fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, sharex=True, figsize=(12, 8))
+    fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.1,
+                        subplot_titles=("RSI指標", "RSI值"))
 
-    # 上面的圖：價格走勢和RSI指標
-    ax1.plot(stock['Date'], stock['Close'], label='Close Price', color='blue')
-    ax1.set_title('RSI Indicator')
-    ax1.set_ylabel('Price')
-    ax1.legend()
+    fig.add_trace(go.Candlestick(x=stock['Date'], open=stock['Open'], high=stock['High'],
+                                 low=stock['Low'], close=stock['Close'], name='K線圖'), row=1, col=1)
+    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['RSI'], mode='lines', name='RSI'), row=2, col=1)
 
-    ax2.plot(stock['Date'], stock['RSI'], label='RSI', color='purple')
-    ax2.fill_between(stock['Date'], 0, 20, where=stock['Overbought'], facecolor='red', alpha=0.3)
-    ax2.fill_between(stock['Date'], 80, 100, where=stock['Oversold'], facecolor='green', alpha=0.3)
-    ax2.set_title('RSI Values')
-    ax2.set_xlabel('Date')
-    ax2.set_ylabel('RSI')
-    ax2.legend()
-
-    plt.tight_layout()
-    st.pyplot(fig)
+    fig.update_layout(title="RSI策略圖", xaxis_title='日期', yaxis_title='價格')
+    st.plotly_chart(fig)
 
 def plot_macd(stock):
-    fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, sharex=True, figsize=(12, 8))
+    fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.1,
+                        subplot_titles=("MACD指標", "MACD值"))
 
-    # 上面的圖：價格走勢和MACD指標
-    ax1.plot(stock['Date'], stock['Close'], label='Close Price', color='blue')
-    ax1.set_title('MACD Indicator')
-    ax1.set_ylabel('Price')
-    ax1.legend()
+    fig.add_trace(go.Candlestick(x=stock['Date'], open=stock['Open'], high=stock['High'],
+                                 low=stock['Low'], close=stock['Close'], name='K線圖'), row=1, col=1)
+    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['MACD'], mode='lines', name='MACD'), row=2, col=1)
+    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Signal_Line'], mode='lines', name='Signal Line'), row=2, col=1)
+    fig.add_trace(go.Bar(x=stock['Date'], y=stock['Histogram'], name='Histogram'), row=2, col=1)
 
-    ax2.plot(stock['Date'], stock['MACD'], label='MACD', color='purple')
-    ax2.plot(stock['Date'], stock['Signal_Line'], label='Signal Line', linestyle='--')
-    ax2.bar(stock['Date'], stock['Histogram'], label='Histogram', color='gray')
-    ax2.set_title('MACD Values')
-    ax2.set_xlabel('Date')
-    ax2.set_ylabel('MACD')
-    ax2.legend()
-
-    plt.tight_layout()
-    st.pyplot(fig)
+    fig.update_layout(title="MACD策略圖", xaxis_title='日期', yaxis_title='價格')
+    st.plotly_chart(fig)
 
 def plot_donchian_channels(stock):
-    fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, sharex=True, figsize=(12, 8))
+    fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.1,
+                        subplot_titles=("唐奇安通道", "成交量"))
 
-    # 上面的圖：價格走勢和唐奇安通道指標
-    ax1.plot(stock['Date'], stock['Close'], label='Close Price', color='blue')
-    ax1.plot(stock['Date'], stock['Donchian_High'], label='Donchian High', linestyle='--')
-    ax1.plot(stock['Date'], stock['Donchian_Low'], label='Donchian Low', linestyle='--')
-    ax1.fill_between(stock['Date'], stock['Donchian_High'], stock['Donchian_Low'], alpha=0.2, color='gray')
-    ax1.set_title('Donchian Channels')
-    ax1.set_ylabel('Price')
-    ax1.legend()
+    fig.add_trace(go.Candlestick(x=stock['Date'], open=stock['Open'], high=stock['High'],
+                                 low=stock['Low'], close=stock['Close'], name='K線圖'), row=1, col=1)
+    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Donchian_High'], mode='lines', name='高值通道'), row=1, col=1)
+    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Donchian_Low'], mode='lines', name='低值通道'), row=1, col=1)
+    fig.add_trace(go.Bar(x=stock['Date'], y=stock['Volume'], name='成交量'), row=2, col=1)
 
-    # 下面的圖：成交量
-    ax2.bar(stock['Date'], stock['Volume'], color='gray')
-    ax2.set_xlabel('Date')
-    ax2.set_ylabel('Volume')
-
-    plt.tight_layout()
-    st.pyplot(fig)
+    fig.update_layout(title="唐奇安通道策略圖", xaxis_title='日期', yaxis_title='價格')
+    st.plotly_chart(fig)
 
 # 定義交易策略
 def trading_strategy(stock, strategy_name):
