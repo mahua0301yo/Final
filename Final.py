@@ -1,4 +1,4 @@
-
+# 載入必要模組
 import yfinance as yf
 import pandas as pd
 import streamlit as st
@@ -140,134 +140,61 @@ def plot_rsi(stock):
 def plot_macd(stock):
     plot_stock_data(stock, "MACD")
 
-    fig_macd = make_subplots(rows=2, cols=1, shared_xaxes=True,
-                             vertical_spacing=0.02, row_heights=[0.7, 0.3])
-    
-    fig_macd.add_trace(go.Scatter(x=stock['Date'], y=stock['MACD'], line=dict(color='blue', width=1), name='MACD'), row=1, col=1)
-    fig_macd.add_trace(go.Scatter(x=stock['Date'], y=stock['Signal_Line'], line=dict(color='red', width=1), name='Signal Line'), row=1, col=1)
+    fig_macd = go.Figure()
+    fig_macd.add_trace(go.Scatter(x=stock['Date'], y=stock['MACD'], line=dict(color='blue', width=1), name='MACD'))
+    fig_macd.add_trace(go.Scatter(x=stock['Date'], y=stock['Signal_Line'], line=dict(color='red', width=1), name='Signal Line'))
 
-    fig_macd.add_trace(go.Bar(x=stock['Date'], y=stock['MACD'] - stock['Signal_Line'], name='Histogram'), row=2, col=1)
+    fig_macd.add_trace(go.Bar(x=stock['Date'], y=stock['MACD'] - stock['Signal_Line'], marker_color='grey', name='MACD Histogram'))
 
     fig_macd.update_layout(title='MACD指標',
                            xaxis_title='日期',
                            yaxis_title='數值')
-
     st.plotly_chart(fig_macd)
 
-# 計算交易策略績效
-def calculate_performance(stock, strategy_name):
-    # 假設初始本金為一百萬
-    initial_capital = 1000000
-    capital = initial_capital
-    shares = 0
-    buy_price = 0
-    total_profit = 0
-    max_profit = 0
-    max_drawdown = 0
-    max_loss_streak = 0
-    current_loss_streak = 0
-    win_trades = 0
-    total_trades = 0
-    last_signal = None
-    signals = []
-
-    for i in range(1, len(stock)):
-        current_price = stock['Close'].iloc[i]
-        previous_price = stock['Close'].iloc[i - 1]
-
-        # 獲取交易信號
-        signal = None
-        if strategy_name == 'Bollinger Bands':
-            if stock['Close'].iloc[i] < stock['Lower_Band'].iloc[i]:
-                signal = 'Buy'
-            elif stock['Close'].iloc[i] > stock['Upper_Band'].iloc[i]:
-                signal = 'Sell'
-        elif strategy_name == 'KDJ':
-            if stock['K'].iloc[i] < 20 and stock['D'].iloc[i] < 20 and stock['J'].iloc[i] < 20:
-                signal = 'Buy'
-            elif stock['K'].iloc[i] > 80 and stock['D'].iloc[i] > 80 and stock['J'].iloc[i] > 80:
-                signal = 'Sell'
-        elif strategy_name == 'RSI':
-            if stock['RSI'].iloc[i] < 30:
-                signal = 'Buy'
-            elif stock['RSI'].iloc[i] > 70:
-                signal = 'Sell'
-        elif strategy_name == 'MACD':
-            if stock['MACD'].iloc[i] > stock['Signal_Line'].iloc[i] and stock['MACD'].iloc[i - 1] <= stock['Signal_Line'].iloc[i - 1]:
-                signal = 'Buy'
-            elif stock['MACD'].iloc[i] < stock['Signal_Line'].iloc[i] and stock['MACD'].iloc[i - 1] >= stock['Signal_Line'].iloc[i - 1]:
-                signal = 'Sell'
-
-        # 執行交易
-        if signal == 'Buy' and last_signal != 'Buy':
-            shares = capital // current_price
-            buy_price = current_price
-            last_signal = 'Buy'
-            signals.append((stock['Date'].iloc[i], 'Buy', current_price))
-        elif signal == 'Sell' and last_signal != 'Sell':
-            if shares > 0:
-                sell_price = current_price
-                profit = shares * (sell_price - buy_price)
-                total_profit += profit
-                capital += profit
-                if profit > 0:
-                    win_trades += 1
-                    current_loss_streak = 0
-                else:
-                    current_loss_streak += 1
-                    max_loss_streak = max(max_loss_streak, current_loss_streak)
-                shares = 0
-                last_signal = 'Sell'
-                signals.append((stock['Date'].iloc[i], 'Sell', current_price))
-        
-        # 計算最大資金回落
-        max_profit = max(max_profit, total_profit)
-        max_drawdown = max(max_drawdown, max_profit - capital)
-
-        total_trades += 1
-
-    # 計算勝率
-    win_rate = win_trades / total_trades if total_trades > 0 else 0
-
-    # 計算報酬率
-    return_rate = (capital - initial_capital) / initial_capital * 100
-
-    # 輸出績效指標
-    st.write(f"損益: {total_profit}")
-    st.write(f"總損益: {capital - initial_capital}")
-    st.write(f"勝率: {win_rate * 100:.2f}%")
-    st.write(f"最大連續虧損: {max_loss_streak}")
-    st.write(f"最大資金回落 (MDD): {max_drawdown}")
-    st.write(f"報酬率: {return_rate:.2f}%")
-
-# 主函數
+# Streamlit應用程式主體
 def main():
-    st.title('股票技術指標分析應用程式')
+    st.title("股票技術分析工具")
+    
+    stockname = st.sidebar.text_input("輸入股票代號", value='AAPL')
+    start_date = st.sidebar.date_input("選擇開始日期", value=pd.to_datetime("2020-01-01"))
+    end_date = st.sidebar.date_input("選擇結束日期", value=pd.to_datetime("2023-12-31"))
+    interval = st.sidebar.selectbox("選擇數據頻率", options=['1d', '1wk', '1mo'], index=0)
+    strategy_name = st.sidebar.selectbox("選擇交易策略", options=["Bollinger Bands", "KDJ", "RSI", "MACD", "唐奇安通道"], index=0)
 
-    stockname = st.sidebar.text_input('輸入股票代號:', value='AAPL')
-    start_date = st.sidebar.date_input('開始日期:', value=pd.to_datetime('2020-01-01'))
-    end_date = st.sidebar.date_input('結束日期:', value=pd.to_datetime('2021-01-01'))
-    interval = st.sidebar.selectbox('選擇數據頻率:', ('1d', '1wk', '1mo'), index=0)
-    strategy = st.sidebar.selectbox('選擇技術指標策略:', ('Bollinger Bands', 'KDJ', 'RSI', 'MACD'), index=0)
+    if strategy_name == "Bollinger Bands":
+        bollinger_period = st.sidebar.slider("布林通道週期", min_value=5, max_value=50, value=20, step=1)
+        bollinger_std = st.sidebar.slider("布林通道標準差倍數", min_value=1.0, max_value=3.0, value=2.0, step=0.1)
+    elif strategy_name == "KDJ":
+        kdj_period = st.sidebar.slider("KDJ週期", min_value=5, max_value=50, value=14, step=1)
+    elif strategy_name == "RSI":
+        rsi_period = st.sidebar.slider("RSI週期", min_value=5, max_value=50, value=14, step=1)
+    elif strategy_name == "MACD":
+        short_window = st.sidebar.slider("短期EMA窗口", min_value=5, max_value=50, value=12, step=1)
+        long_window = st.sidebar.slider("長期EMA窗口", min_value=10, max_value=100, value=26, step=1)
+        signal_window = st.sidebar.slider("信號線窗口", min_value=5, max_value=50, value=9, step=1)
+    elif strategy_name == "唐奇安通道":
+        donchian_period = st.sidebar.slider("唐奇安通道週期", min_value=5, max_value=50, value=20, step=1)
 
     stock = load_stock_data(stockname, start_date, end_date, interval)
-
     if stock is not None:
-        if strategy == 'Bollinger Bands':
-            stock = calculate_bollinger_bands(stock)
-            plot_stock_data(stock, 'Bollinger Bands')
-        elif strategy == 'KDJ':
-            stock = calculate_kdj(stock)
+        st.subheader(f"股票代號: {stockname}")
+        st.write(stock.head())
+
+        if strategy_name == "Bollinger Bands":
+            stock = calculate_bollinger_bands(stock, period=bollinger_period, std_dev=bollinger_std)
+            plot_stock_data(stock, strategy_name)
+        elif strategy_name == "KDJ":
+            stock = calculate_kdj(stock, period=kdj_period)
             plot_kdj(stock)
-        elif strategy == 'RSI':
-            stock = calculate_rsi(stock)
+        elif strategy_name == "RSI":
+            stock = calculate_rsi(stock, period=rsi_period)
             plot_rsi(stock)
-        elif strategy == 'MACD':
-            stock = calculate_macd(stock)
+        elif strategy_name == "MACD":
+            stock = calculate_macd(stock, short_window=short_window, long_window=long_window, signal_window=signal_window)
             plot_macd(stock)
+        elif strategy_name == "唐奇安通道":
+            stock = calculate_donchian_channels(stock, period=donchian_period)
+            plot_stock_data(stock, strategy_name)  # 將唐奇安通道指標整合到主圖中
 
-        # 計算並顯示交易策略績效
-        calculate_performance(stock, strategy)
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
