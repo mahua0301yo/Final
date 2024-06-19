@@ -55,7 +55,7 @@ def calculate_rsi(stock, period=14):
 def plot_stock_data(stock, strategy_name):
     fig = go.Figure()
 
-    # 繪製股票價格
+    # 繪製 K 線圖
     fig.add_trace(go.Candlestick(
         x=stock['Date'],
         open=stock['Open'],
@@ -85,56 +85,78 @@ def plot_stock_data(stock, strategy_name):
             name='Lower Band'
         ))
     elif strategy_name == 'MACD':
+        # 繪製 12 週期和 26 週期的 EMA
         fig.add_trace(go.Scatter(
+            x=stock['Date'],
+            y=stock['Short_EMA'],
+            mode='lines',
+            name='12-period EMA',
+            line=dict(color='magenta')
+        ))
+        fig.add_trace(go.Scatter(
+            x=stock['Date'],
+            y=stock['Long_EMA'],
+            mode='lines',
+            name='26-period EMA',
+            line=dict(color='purple')
+        ))
+        # 添加 MACD 和 Signal Line 圖
+        macd_fig = go.Figure()
+        macd_fig.add_trace(go.Scatter(
             x=stock['Date'],
             y=stock['MACD'],
             mode='lines',
-            name='MACD'
+            name='MACD',
+            line=dict(color='blue')
         ))
-        fig.add_trace(go.Scatter(
+        macd_fig.add_trace(go.Scatter(
             x=stock['Date'],
             y=stock['Signal_Line'],
             mode='lines',
-            name='Signal Line'
+            name='MACD Signal Line',
+            line=dict(color='red')
         ))
-        fig.add_trace(go.Bar(
+        macd_fig.add_trace(go.Bar(
             x=stock['Date'],
             y=stock['MACD_Histogram'],
             name='MACD Histogram',
-            yaxis='y2'
+            marker_color='grey'
         ))
-        fig.update_layout(
-            yaxis2=dict(
-                overlaying='y',
-                side='right',
-                title='MACD Histogram'
-            )
+        macd_fig.update_layout(
+            title='MACD',
+            xaxis_title='Date',
+            yaxis_title='MACD Value'
         )
+        st.plotly_chart(macd_fig)
     elif strategy_name == 'KDJ':
         fig.add_trace(go.Scatter(
             x=stock['Date'],
             y=stock['K'],
             mode='lines',
-            name='K'
+            name='K',
+            line=dict(color='blue')
         ))
         fig.add_trace(go.Scatter(
             x=stock['Date'],
             y=stock['D'],
             mode='lines',
-            name='D'
+            name='D',
+            line=dict(color='orange')
         ))
         fig.add_trace(go.Scatter(
             x=stock['Date'],
             y=stock['J'],
             mode='lines',
-            name='J'
+            name='J',
+            line=dict(color='purple')
         ))
     elif strategy_name == 'RSI':
         fig.add_trace(go.Scatter(
             x=stock['Date'],
             y=stock['RSI'],
             mode='lines',
-            name='RSI'
+            name='RSI',
+            line=dict(color='green')
         ))
 
     fig.update_layout(title=f'{strategy_name} Analysis',
