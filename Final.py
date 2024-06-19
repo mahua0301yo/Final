@@ -2,9 +2,9 @@
 import yfinance as yf
 import pandas as pd
 import streamlit as st
-import mplfinance as mpf
 import numpy as np
 import datetime
+import mplfinance as mpf
 
 # 定義函數來讀取股票數據
 def load_stock_data(stockname, start_date, end_date, interval):
@@ -64,6 +64,46 @@ def calculate_donchian_channels(stock, period=20):
     stock['Donchian_Low'] = stock['Low'].rolling(window=period).min()
     return stock
 
+# 定義單獨的繪圖函數
+def plot_bollinger_bands(stock):
+    add_plot = [
+        mpf.make_addplot(stock['Middle_Band'], color='orange'),
+        mpf.make_addplot(stock['Upper_Band'], color='b'),
+        mpf.make_addplot(stock['Lower_Band'], color='b'),
+        mpf.make_addplot(stock['Volume'], panel=1, color='purple', ylabel='Volume')
+    ]
+    mpf.plot(stock, type='candle', addplot=add_plot, title="布林通道策略圖", ylabel='Price')
+
+def plot_kdj(stock):
+    add_plot = [
+        mpf.make_addplot(stock['K'], color='purple'),
+        mpf.make_addplot(stock['D'], color='orange'),
+        mpf.make_addplot(stock['J'], color='blue')
+    ]
+    mpf.plot(stock, type='candle', addplot=add_plot, title="KDJ策略圖", ylabel='Price')
+
+def plot_rsi(stock):
+    add_plot = [
+        mpf.make_addplot(stock['RSI'], color='purple')
+    ]
+    mpf.plot(stock, type='candle', addplot=add_plot, title="RSI策略圖", ylabel='Price')
+
+def plot_macd(stock):
+    add_plot = [
+        mpf.make_addplot(stock['MACD'], color='purple'),
+        mpf.make_addplot(stock['Signal_Line'], color='orange'),
+        mpf.make_addplot(stock['Histogram'], type='bar', color='grey', ylabel='Histogram')
+    ]
+    mpf.plot(stock, type='candle', addplot=add_plot, title="MACD策略圖", ylabel='Price')
+
+def plot_donchian_channels(stock):
+    add_plot = [
+        mpf.make_addplot(stock['Donchian_High'], color='orange'),
+        mpf.make_addplot(stock['Donchian_Low'], color='blue'),
+        mpf.make_addplot(stock['Volume'], panel=1, color='purple', ylabel='Volume')
+    ]
+    mpf.plot(stock, type='candle', addplot=add_plot, title="唐奇安通道策略圖", ylabel='Price')
+
 # 定義交易策略
 def trading_strategy(stock, strategy_name):
     # 根據不同的策略進行交易
@@ -101,80 +141,60 @@ def trading_strategy(stock, strategy_name):
     st.write(f"策略績效指標:")
     st.write(f"勝率: {win_rate:.2%}")
     st.write(f"最大連續虧損: {consecutive_losses}")
-    st.write(f"最大資金回落: {max_drawdown:.2%}")
-    st.write(f"總損益: {total_profit:.2%}")
+    st.write(f"最大資金回撤: {max_drawdown:.2%}")
+    st.write(f"總收益率: {total_profit:.2%}")
 
-    return stock
-
-# 主函數
-def main():
-    st.title("股票技術指標交易策略")
-
-    # 選擇資料區間
-    st.sidebar.subheader("選擇資料區間")
-    start_date = st.sidebar.date_input('選擇開始日期', datetime.date(2020, 1, 1))
-    end_date = st.sidebar.date_input('選擇結束日期', datetime.date(2023, 1, 1))
-    stockname = st.sidebar.text_input('請輸入股票代號 (例: 2330.TW)', '2330.TW')
-
-    # 選擇K線時間長
-    interval_options = {"1天": "1d", "1星期": "1wk", "1個月": "1mo"}
-    interval_label = st.sidebar.selectbox("選擇K線時間長", list(interval_options.keys()))
-    interval = interval_options[interval_label]
-
-    # 選擇指標和參數
-    strategy_name = st.sidebar.selectbox("選擇指標", ["Bollinger Bands", "KDJ", "RSI", "MACD", "唐奇安通道"])
-
-    if strategy_name == "Bollinger Bands":
-        bollinger_period = st.sidebar.slider("布林通道週期", min_value=5, max_value=50, value=20, step=1)
-        bollinger_std_dev = st.sidebar.slider("標準差", min_value=1, max_value=3, value=2, step=1)
-    elif strategy_name == "KDJ":
-        kdj_period = st.sidebar.slider("KDJ週期", min_value=5, max_value=50, value=14, step=1)
-    elif strategy_name == "RSI":
-        rsi_period = st.sidebar.slider("RSI週期", min_value=5, max_value=50, value=14, step=1)
-    elif strategy_name == "MACD":
-        short_window = st.sidebar.slider("短期EMA週期", min_value=5, max_value=50, value=12, step=1)
-        long_window = st.sidebar.slider("長期EMA週期", min_value=10, max_value=100, value=26, step=1)
-        signal_window = st.sidebar.slider("Signal Line週期", min_value=5, max_value=50, value=9, step=1)
-    elif strategy_name == "唐奇安通道":
-        donchian_period = st.sidebar.slider("唐奇安通道週期", min_value=5, max_value=50, value=20, step=1)
-
-    # 讀取股票數據
-    stock = load_stock_data(stockname, start_date, end_date, interval)
-    if stock is None:
-        return
-
-    # 計算技術指標
-    if strategy_name == "Bollinger Bands":
-        stock = calculate_bollinger_bands(stock, period=bollinger_period, std_dev=bollinger_std_dev)
-    elif strategy_name == "KDJ":
-        stock = calculate_kdj(stock, period=kdj_period)
-    elif strategy_name == "RSI":
-        stock = calculate_rsi(stock, period=rsi_period)
-    elif strategy_name == "MACD":
-        stock = calculate_macd(stock, short_window=short_window, long_window=long_window, signal_window=signal_window)
-    elif strategy_name == "唐奇安通道":
-        stock = calculate_donchian_channels(stock, period=donchian_period)
-
-    # 計算交易策略
-    stock = trading_strategy(stock, strategy_name)
-
-    # 繪製K線圖和指標圖表
-    st.subheader(f"{stockname} {strategy_name} 圖表")
-    fig, axes = mpf.plot(stock, type='candle', volume=True, mav=(5, 10),
-                         title=f"{stockname} {strategy_name} 圖表",
-                         ylabel='價格',
-                         style='charles',
-                         addplot=[mpf.make_addplot(stock[['Middle_Band', 'Upper_Band', 'Lower_Band']]),
-                                  mpf.make_addplot(stock['K']),
-                                  mpf.make_addplot(stock['D']),
-                                  mpf.make_addplot(stock['J']),
-                                  mpf.make_addplot(stock['RSI'], panel=1, color='g', ylabel='RSI'),
-                                  mpf.make_addplot(stock[['MACD', 'Signal_Line', 'Histogram']]),
-                                  mpf.make_addplot(stock[['Donchian_High', 'Donchian_Low']])],
-                         returnfig=True)
-    
+    # 繪製策略表現圖
+    fig, ax = mpf.plot(stock, type='line', addplot=[mpf.make_addplot(stock['Cumulative_Strategy_Return'], ylabel='Cumulative Return')], 
+                       title=f"{strategy_name} 策略表現", ylabel='Cumulative Return', returnfig=True)
     st.pyplot(fig)
 
-# 主程序入口
+def main():
+    # Streamlit App 的主要程式碼
+    st.title('股票技術指標分析與交易策略')
+    
+    # 設定選擇股票及日期區間
+    stockname = st.sidebar.text_input("請輸入股票代號（例如：AAPL）")
+    start_date = st.sidebar.date_input("請選擇開始日期")
+    end_date = st.sidebar.date_input("請選擇結束日期", datetime.date.today())
+    interval = st.sidebar.selectbox("請選擇數據間隔", ["1d", "1wk", "1mo"])
+
+    # 讀取股票數據
+    if stockname:
+        stock = load_stock_data(stockname, start_date, end_date, interval)
+        if stock is not None:
+            st.write(f"顯示 {stockname} 的股票數據:")
+            st.dataframe(stock.head())
+
+            # 計算技術指標
+            stock = calculate_bollinger_bands(stock)
+            stock = calculate_kdj(stock)
+            stock = calculate_rsi(stock)
+            stock = calculate_macd(stock)
+            stock = calculate_donchian_channels(stock)
+
+            # 選擇繪製的技術指標圖表
+            st.subheader("選擇繪製的技術指標圖表:")
+            plot_option = st.selectbox("請選擇技術指標", ["布林通道策略圖", "KDJ策略圖", "RSI策略圖", "MACD策略圖", "唐奇安通道策略圖"])
+
+            if plot_option == "布林通道策略圖":
+                plot_bollinger_bands(stock)
+            elif plot_option == "KDJ策略圖":
+                plot_kdj(stock)
+            elif plot_option == "RSI策略圖":
+                plot_rsi(stock)
+            elif plot_option == "MACD策略圖":
+                plot_macd(stock)
+            elif plot_option == "唐奇安通道策略圖":
+                plot_donchian_channels(stock)
+
+            # 選擇交易策略
+            st.subheader("選擇交易策略並評估其績效:")
+            strategy_option = st.selectbox("請選擇交易策略", ["Bollinger Bands", "KDJ", "RSI", "MACD", "唐奇安通道"])
+
+            # 執行交易策略並顯示績效
+            if st.button("執行交易策略"):
+                trading_strategy(stock, strategy_option)
+
 if __name__ == "__main__":
     main()
