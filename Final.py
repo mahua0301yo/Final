@@ -63,40 +63,6 @@ def calculate_donchian_channels(stock, period=20):
     stock['Lower_Channel'] = stock['Close'].rolling(window=period).min()
     return stock
 
-# 定義函數來計算交易策略績效
-def calculate_strategy_performance(stock, strategy_name):
-    # 在這裡實現你的交易策略和相關的績效計算
-    # 這裡是一個示例，實際上需要根據你的具體策略來修改和擴展
-    stock['Signal'] = 0  # 這裡假設信號列為0，實際上應根據具體策略填入真實信號
-
-    # 計算總損益
-    stock['PnL'] = stock['Signal'] * stock['Close'].diff().shift(-1)
-
-    # 計算勝率
-    total_trades = stock[stock['Signal'] != 0]
-    total_profit = stock['PnL'].sum()
-    win_trades = total_trades[total_trades['PnL'] > 0]
-    win_rate = len(win_trades) / len(total_trades) if len(total_trades) > 0 else 0
-
-    # 計算最大回撤
-    cumulative_return = stock['PnL'].cumsum()
-    high_watermark = cumulative_return.cummax()
-    drawdown = cumulative_return - high_watermark
-    max_drawdown = drawdown.min()
-
-    # 計算最大連續虧損
-    acc_loss = 0
-    max_acc_loss = 0
-    for pnl in stock['PnL']:
-        if pnl < 0:
-            acc_loss += pnl
-            if acc_loss < max_acc_loss:
-                max_acc_loss = acc_loss
-        else:
-            acc_loss = 0
-
-    return total_profit, win_rate, max_drawdown, max_acc_loss
-
 # 繪製股票數據和指標圖
 def plot_stock_data(stock, strategy_name):
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True,
@@ -229,13 +195,6 @@ def main():
         elif strategy_name == "唐奇安通道":
             stock = calculate_donchian_channels(stock, period=donchian_period)
             plot_stock_data(stock, strategy_name)  # 將唐奇安通道指標整合到主圖中
-
-        # 計算並顯示績效指標
-        total_profit, win_rate, max_drawdown, max_acc_loss = calculate_strategy_performance(stock, strategy_name)
-        st.write(f"總損益: {total_profit}")
-        st.write(f"勝率: {win_rate * 100:.2f}%")
-        st.write(f"最大回撤: {max_drawdown}")
-        st.write(f"最大連續虧損: {max_acc_loss}")
 
 if __name__ == "__main__":
     main()
