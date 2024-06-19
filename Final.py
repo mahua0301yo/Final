@@ -54,12 +54,12 @@ def calculate_rsi(stock, period=14):
     return stock
 
 # 繪製股票數據及技術指標
-def plot_stock_data(stock, strategy_name):
+def plot_stock_data(stock, strategy_name, price_range):
     fig = go.Figure()
     fig.add_trace(go.Candlestick(
         x=stock['Date'], open=stock['Open'], high=stock['High'], low=stock['Low'], close=stock['Close'],
         name='Candlestick'))
-    
+
     if strategy_name == "Bollinger Bands":
         fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Upper_Band'], line=dict(color='blue', width=1), name='Upper Band'))
         fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Middle_Band'], line=dict(color='orange', width=1), name='Middle Band'))
@@ -74,8 +74,8 @@ def plot_stock_data(stock, strategy_name):
         fig.add_trace(go.Scatter(x=stock['Date'], y=stock['J'], line=dict(color='green', width=1), name='J'))
     elif strategy_name == "RSI":
         fig.add_trace(go.Scatter(x=stock['Date'], y=stock['RSI'], line=dict(color='blue', width=1), name='RSI'))
-    
-    fig.update_layout(title=strategy_name, xaxis_title='Date', yaxis_title='Price')
+
+    fig.update_layout(title=strategy_name, xaxis_title='Date', yaxis_title='Price', yaxis=dict(range=price_range))
     st.plotly_chart(fig)
 
 def main():
@@ -104,6 +104,17 @@ def main():
         st.subheader(f"股票代號: {stockname}")
         st.write(stock.head())
 
+        # 計算價格範圍
+        min_price = stock['Low'].min()
+        max_price = stock['High'].max()
+        price_range = st.sidebar.slider(
+            "價格範圍",
+            min_value=float(min_price * 0.9),
+            max_value=float(max_price * 1.1),
+            value=(float(min_price * 0.9), float(max_price * 1.1)),
+            step=0.1
+        )
+
         # 計算技術指標並繪圖
         if strategy_name == "Bollinger Bands":
             stock = calculate_bollinger_bands(stock, period=bollinger_period, std_dev=bollinger_std)
@@ -114,7 +125,7 @@ def main():
         elif strategy_name == "RSI":
             stock = calculate_rsi(stock, period=rsi_period)
 
-        plot_stock_data(stock, strategy_name)
+        plot_stock_data(stock, strategy_name, price_range)
 
 if __name__ == "__main__":
     main()
