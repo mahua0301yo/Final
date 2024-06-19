@@ -172,10 +172,29 @@ def plot_stock_data(stock, strategy_name):
             line=dict(color='blue', dash='dash')
         ))
 
-    fig.update_layout(title=f'{strategy_name} Analysis',
-                      xaxis_title='Date',
-                      yaxis_title='Price')
+    # 添加交易量圖
+    fig.add_trace(go.Bar(
+        x=stock['Date'],
+        y=stock['Volume'],
+        name='Volume',
+        marker_color='gray',
+        opacity=0.5,
+        yaxis='y2'  # 使用第二個 y 軸
+    ))
+
+    fig.update_layout(
+        title=f'{strategy_name} Analysis',
+        xaxis_title='Date',
+        yaxis_title='Price',
+        yaxis2=dict(
+            title='Volume',
+            overlaying='y',
+            side='right'
+        )
+    )
+
     st.plotly_chart(fig)
+
 
 # Streamlit 應用程式
 def main():
