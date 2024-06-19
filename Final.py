@@ -33,14 +33,21 @@ def calculate_macd(stock, short_period=12, long_period=26, signal_period=9):
     return stock
 
 # 定義函數來計算KDJ指標
-def calculate_kdj(stock, period=14):
+def calculate_kdj(stock, period=14, m=3):
+    # 計算N日內最低價和最高價
     low_min = stock['Low'].rolling(window=period).min()
     high_max = stock['High'].rolling(window=period).max()
-    rsv = (stock['Close'] - low_min) / (high_max - low_min) * 100
-    stock['K'] = rsv.ewm(com=2).mean()
-    stock['D'] = stock['K'].ewm(com=2).mean()
+
+    # 計算RSV
+    stock['RSV'] = (stock['Close'] - low_min) / (high_max - low_min) * 100
+
+    # 計算K、D、J值
+    stock['K'] = stock['RSV'].ewm(span=m).mean()
+    stock['D'] = stock['K'].ewm(span=m).mean()
     stock['J'] = 3 * stock['K'] - 2 * stock['D']
+
     return stock
+
 
 # 定義函數來計算RSI指標
 def calculate_rsi(stock, period=14):
