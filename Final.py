@@ -32,6 +32,25 @@ def calculate_macd(stock, short_period=12, long_period=26, signal_period=9):
     stock['MACD_Histogram'] = stock['MACD'] - stock['Signal_Line']
     return stock
 
+# 定義函數來計算KDJ指標
+def calculate_kdj(stock, period=14):
+    low_min = stock['Low'].rolling(window=period).min()
+    high_max = stock['High'].rolling(window=period).max()
+    rsv = (stock['Close'] - low_min) / (high_max - low_min) * 100
+    stock['K'] = rsv.ewm(com=2).mean()
+    stock['D'] = stock['K'].ewm(com=2).mean()
+    stock['J'] = 3 * stock['K'] - 2 * stock['D']
+    return stock
+
+# 定義函數來計算RSI指標
+def calculate_rsi(stock, period=14):
+    delta = stock['Close'].diff(1)
+    gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
+    rs = gain / loss
+    stock['RSI'] = 100 - (100 / (1 + rs))
+    return stock
+
 # 定義函數來繪製股票數據和技術指標
 def plot_stock_data(stock, strategy_name):
     fig = go.Figure()
@@ -81,7 +100,41 @@ def plot_stock_data(stock, strategy_name):
         fig.add_trace(go.Bar(
             x=stock['Date'],
             y=stock['MACD_Histogram'],
-            name='MACD Histogram'
+            name='MACD Histogram',
+            yaxis='y2'
+        ))
+        fig.update_layout(
+            yaxis2=dict(
+                overlaying='y',
+                side='right',
+                title='MACD Histogram'
+            )
+        )
+    elif strategy_name == 'KDJ':
+        fig.add_trace(go.Scatter(
+            x=stock['Date'],
+            y=stock['K'],
+            mode='lines',
+            name='K'
+        ))
+        fig.add_trace(go.Scatter(
+            x=stock['Date'],
+            y=stock['D'],
+            mode='lines',
+            name='D'
+        ))
+        fig.add_trace(go.Scatter(
+            x=stock['Date'],
+            y=stock['J'],
+            mode='lines',
+            name='J'
+        ))
+    elif strategy_name == 'RSI':
+        fig.add_trace(go.Scatter(
+            x=stock['Date'],
+            y=stock['RSI'],
+            mode='lines',
+            name='RSI'
         ))
 
     fig.update_layout(title=f'{strategy_name} Analysis',
@@ -98,7 +151,7 @@ def main():
     start_date = st.sidebar.date_input("選擇開始日期", value=pd.to_datetime("2023-01-01"))
     end_date = st.sidebar.date_input("選擇結束日期", value=pd.to_datetime("2023-12-31"))
     interval = st.sidebar.selectbox("選擇數據頻率", options=['1d', '1wk', '1mo'], index=0)
-    strategy_name = st.sidebar.selectbox("選擇交易策略", options=["Bollinger Bands", "MACD"], index=0)
+    strategy_name = st.sidebar.selectbox("選擇交易策略", options=["Bollinger Bands", "MACD", "KDJ", "RSI"], index=0)
 
     if strategy_name == "Bollinger Bands":
         bollinger_period = st.sidebar.slider("布林通道週期", min_value=5, max_value=50, value=20, step=1)
@@ -107,6 +160,10 @@ def main():
         macd_short_period = st.sidebar.number_input("輸入MACD短期EMA週期", min_value=1, max_value=50, value=12, step=1)
         macd_long_period = st.sidebar.number_input("輸入MACD長期EMA週期", min_value=1, max_value=50, value=26, step=1)
         macd_signal_period = st.sidebar.number_input("輸入MACD信號線週期", min_value=1, max_value=50, value=9, step=1)
+    elif strategy_name == "KDJ":
+        kdj_period = st.sidebar.slider("KDJ週期", min_value=5, max_value=50, value=14, step=1)
+    elif strategy_name == "RSI":
+        rsi_period = st.sidebar.slider("RSI週期", min_value=5, max_value=50, value=14, step=1)
 
     # 讀取股票數據
     stock = load_stock_data(stockname, start_date, end_date, interval)
@@ -119,6 +176,10 @@ def main():
             stock = calculate_bollinger_bands(stock, period=bollinger_period, std_dev=bollinger_std)
         elif strategy_name == "MACD":
             stock = calculate_macd(stock, short_period=macd_short_period, long_period=macd_long_period, signal_period=macd_signal_period)
+        elif strategy_name == "KDJ":
+            stock = calculate_kdj(stock, period=kdj_period)
+        elif strategy_name == "RSI":
+            stock = calculate_rsi(stock, period=rsi_period)
 
         plot_stock_data(stock, strategy_name)
 
