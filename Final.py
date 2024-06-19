@@ -41,11 +41,6 @@ def calculate_rsi(stock, period=14):
     loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
     rs = gain / loss
     stock['RSI'] = 100 - (100 / (1 + rs))
-    
-    # Add overbought (>80) and oversold (<20) conditions
-    stock['Overbought'] = 80
-    stock['Oversold'] = 20
-    
     return stock
 
 # 定義函數來計算MACD指標
@@ -76,9 +71,12 @@ def plot_stock_data(stock, strategy_name):
                                  close=stock['Close'],
                                  name='價格'), row=1, col=1)
 
-    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Middle_Band'], line=dict(color='blue', width=1), name='中軌'), row=1, col=1)
-    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Upper_Band'], line=dict(color='red', width=1), name='上軌'), row=1, col=1)
-    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Lower_Band'], line=dict(color='red', width=1), name='下軌'), row=1, col=1)
+    if 'Upper_Band' in stock.columns:
+        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Upper_Band'], line=dict(color='red', width=1), name='上軌'), row=1, col=1)
+    if 'Middle_Band' in stock.columns:
+        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Middle_Band'], line=dict(color='blue', width=1), name='中軌'), row=1, col=1)
+    if 'Lower_Band' in stock.columns:
+        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Lower_Band'], line=dict(color='red', width=1), name='下軌'), row=1, col=1)
     
     fig.add_trace(go.Bar(x=stock['Date'], y=stock['amount'], name='交易量'), row=2, col=1)
 
@@ -109,15 +107,9 @@ def plot_rsi(stock):
     fig_rsi = go.Figure()
     fig_rsi.add_trace(go.Scatter(x=stock['Date'], y=stock['RSI'], line=dict(color='purple', width=1), name='RSI'))
     
-    # Add overbought and oversold lines
-    fig_rsi.add_trace(go.Scatter(x=stock['Date'], y=stock['Overbought'], line=dict(color='red', width=1, dash='dash'), name='Overbought (>80)'))
-    fig_rsi.add_trace(go.Scatter(x=stock['Date'], y=stock['Oversold'], line=dict(color='blue', width=1, dash='dash'), name='Oversold (<20)'))
-    
     fig_rsi.update_layout(title='RSI指標',
                           xaxis_title='日期',
-                          yaxis_title='數值',
-                          yaxis=dict(range=[0, 100]))  # Ensure y-axis range from 0 to 100
-    
+                          yaxis_title='數值')
     st.plotly_chart(fig_rsi)
 
 # 繪製MACD指標
