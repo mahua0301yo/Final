@@ -63,6 +63,32 @@ def calculate_donchian_channels(stock, period=20):
     stock['Lower_Channel'] = stock['Close'].rolling(window=period).min()
     return stock
 
+# 計算策略回測績效
+def calculate_strategy_performance(stock, buy_signal_col, sell_signal_col):
+    # 初始化交易訊號為0
+    stock['signal'] = 0
+    
+    # 買入訊號為1，賣出訊號為-1
+    stock.loc[stock[buy_signal_col] == 1, 'signal'] = 1
+    stock.loc[stock[sell_signal_col] == 1, 'signal'] = -1
+    
+    # 計算每日收益率
+    stock['Returns'] = stock['Close'].pct_change()
+    stock['Strategy_Returns'] = stock['Returns'] * stock['signal'].shift(1)
+    
+    # 計算持有期間
+    if isinstance(stock.index, pd.DatetimeIndex):  # 只有在日期時間索引時才使用.dt.days
+        stock['Trade_Duration'] = stock.index.to_series().diff().dt.days
+    else:
+        stock['Trade_Duration'] = stock.index.to_series().diff().apply(lambda x: x.days if pd.notnull(x) else 0)
+    
+    # 計算勝率
+    total_trades = stock[buy_signal_col].sum() + stock[sell_signal_col].sum()
+    win_trades = (stock['Strategy_Returns'] > 0).sum()
+    win_rate = win_trades / total_trades * 100 if total_trades > 0 else 0
+    
+    return stock, win_rate
+
 # 繪製股票數據和指標圖
 def plot_stock_data(stock, strategy_name):
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True,
@@ -116,190 +142,100 @@ def plot_rsi(stock):
 
     fig_rsi = go.Figure()
     fig_rsi.add_trace(go.Scatter(x=stock['Date'], y=stock['RSI'], line=dict(color='purple', width=1), name='RSI'))
-    
-    # 加入超買區和超賣區的背景色
-    fig_rsi.add_shape(type="rect", xref="paper", yref="y",
-                      x0=0, y0=80, x1=1, y1=100,
-                      fillcolor="rgba(255, 0, 0, 0.3)",  # 紅色半透明填充
-                      layer="below", line_width=0,
-                      name="超買區域")
-    
-    fig_rsi.add_shape(type="rect", xref="paper", yref="y",
-                      x0=0, y0=0, x1=1, y1=20,
-                      fillcolor="rgba(0, 0, 255, 0.3)",  # 藍色半透明填充
-                      layer="below", line_width=0,
-                      name="超賣區域")
-    
+    fig_rsi.add_trace(go.Scatter(x=stock['Date'], y=[70]*len(stock), line=dict(color='red', width=1), name='Overbought', line_dash='dash'))
+    fig_rsi.add_trace(go.Scatter(x=stock['Date'], y=[30]*len(stock), line=dict(color='green', width=1), name='Oversold', line_dash='dash'))
+
     fig_rsi.update_layout(title='RSI指標',
                           xaxis_title='日期',
                           yaxis_title='數值')
     st.plotly_chart(fig_rsi)
 
-
 # 繪製MACD指標
 def plot_macd(stock):
     plot_stock_data(stock, "MACD")
 
-    fig_macd = go.Figure()
-    fig_macd.add_trace(go.Scatter(x=stock['Date'], y=stock['MACD'], line=dict(color='blue', width=1), name='MACD'))
-    fig_macd.add_trace(go.Scatter(x=stock['Date'], y=stock['Signal_Line'], line=dict(color='red', width=1), name='Signal Line'))
+    fig_macd = make_subplots(rows=2, cols=1, shared_xaxes=True,
+                             vertical_spacing=0.02, row_heights=[0.7, 0.3])
+    
+    fig_macd.add_trace(go.Scatter(x=stock['Date'], y=stock['MACD'], line=dict(color='blue', width=1), name='MACD'), row=1, col=1)
+    fig_macd.add_trace(go.Scatter(x=stock['Date'], y=stock['Signal_Line'], line=dict(color='red', width=1), name='Signal Line'), row=1, col=1)
 
-    fig_macd.add_trace(go.Bar(x=stock['Date'], y=stock['MACD'] - stock['Signal_Line'], marker_color='grey', name='MACD Histogram'))
+    fig_macd.add_trace(go.Bar(x=stock['Date'], y=stock['MACD_Histogram'], marker_color='gray', name='Histogram'), row=2, col=1)
 
     fig_macd.update_layout(title='MACD指標',
                            xaxis_title='日期',
                            yaxis_title='數值')
     st.plotly_chart(fig_macd)
 
-# 策略設計和回測函數
+# 繪製唐奇安通道指標
+def plot_donchian_channels(stock):
+    plot_stock_data(stock, "唐奇安通道")
 
-# 1. 布林通道策略
-def bollinger_band_strategy(stock, period=20, std_dev=2):
-    stock = calculate_bollinger_bands(stock, period=period, std_dev=std_dev)
+    fig_donchian = go.Figure()
+    fig_donchian.add_trace(go.Scatter(x=stock['Date'], y=stock['Upper_Channel'], line=dict(color='green', width=1), name='上通道'))
+    fig_donchian.add_trace(go.Scatter(x=stock['Date'], y=stock['Lower_Channel'], line=dict(color='red', width=1), name='下通道'))
     
-    # 產生交易訊號
-    stock['Buy_Signal'] = (stock['Close'] > stock['Upper_Band']).astype(int)
-    stock['Sell_Signal'] = (stock['Close'] < stock['Lower_Band']).astype(int)
-    
-    # 計算策略回報率和其他績效指標
-    signals, win_rate = calculate_strategy_performance(stock, 'Buy_Signal', 'Sell_Signal')
-    
-    return signals, win_rate
+    fig_donchian.update_layout(title='唐奇安通道指標',
+                               xaxis_title='日期',
+                               yaxis_title='價格')
+    st.plotly_chart(fig_donchian)
 
-# 2. KDJ策略
-def kdj_strategy(stock, period=14):
-    stock = calculate_kdj(stock, period=period)
-    
-    # 產生交易訊號
-    stock['Buy_Signal'] = (stock['K'] > stock['D']).astype(int)
-    stock['Sell_Signal'] = (stock['K'] < stock['D']).astype(int)
-    
-    # 計算策略回報率和其他績效指標
-    signals, win_rate = calculate_strategy_performance(stock, 'Buy_Signal', 'Sell_Signal')
-    
-    return signals, win_rate
-
-# 3. RSI策略
-def rsi_strategy(stock, period=14):
-    stock = calculate_rsi(stock, period=period)
-    
-    # 產生交易訊號
-    stock['Buy_Signal'] = (stock['RSI'] < 30).astype(int)
-    stock['Sell_Signal'] = (stock['RSI'] > 70).astype(int)
-    
-    # 計算策略回報率和其他績效指標
-    signals, win_rate = calculate_strategy_performance(stock, 'Buy_Signal', 'Sell_Signal')
-    
-    return signals, win_rate
-
-# 4. MACD策略
-def macd_strategy(stock, short_window=12, long_window=26, signal_window=9):
-    stock = calculate_macd(stock, short_window=short_window, long_window=long_window, signal_window=signal_window)
-    
-    # 產生交易訊號
-    stock['Buy_Signal'] = (stock['MACD'] > stock['Signal_Line']).astype(int)
-    stock['Sell_Signal'] = (stock['MACD'] < stock['Signal_Line']).astype(int)
-    
-    # 計算策略回報率和其他績效指標
-    signals, win_rate = calculate_strategy_performance(stock, 'Buy_Signal', 'Sell_Signal')
-    
-    return signals, win_rate
-
-# 5. 唐奇安通道策略
-def donchian_channel_strategy(stock, period=20):
-    stock = calculate_donchian_channels(stock, period=period)
-    
-    # 產生交易訊號
-    stock['Buy_Signal'] = (stock['Close'] > stock['Upper_Channel']).astype(int)
-    stock['Sell_Signal'] = (stock['Close'] < stock['Lower_Channel']).astype(int)
-    
-    # 計算策略回報率和其他績效指標
-    signals, win_rate = calculate_strategy_performance(stock, 'Buy_Signal', 'Sell_Signal')
-    
-    return signals, win_rate
-
-# 計算策略回測績效
-def calculate_strategy_performance(stock, buy_signal_col, sell_signal_col):
-    # 初始化交易訊號為0
-    stock['signal'] = 0
-    
-    # 買入訊號為1，賣出訊號為-1
-    stock.loc[stock[buy_signal_col] == 1, 'signal'] = 1
-    stock.loc[stock[sell_signal_col] == 1, 'signal'] = -1
-    
-    # 計算每日收益率
-    stock['Returns'] = stock['Close'].pct_change()
-    stock['Strategy_Returns'] = stock['Returns'] * stock['signal'].shift(1)
-    
-    # 計算持有期間
-    stock['Trade_Duration'] = stock.index.to_series().diff().dt.days
-    
-    # 計算勝率
-    total_trades = stock[buy_signal_col].sum() + stock[sell_signal_col].sum()
-    win_trades = (stock['Strategy_Returns'] > 0).sum()
-    win_rate = win_trades / total_trades * 100 if total_trades > 0 else 0
-    
-    return stock, win_rate
-
-# Streamlit應用程式主體
+# 主程式碼
 def main():
-    st.title("股票技術分析工具")
+    # 設置網頁標題和介紹
+    st.title('股票分析')
+    st.write('這是一個用於股票技術指標分析和策略回測的應用。')
     
-    stockname = st.sidebar.text_input("輸入股票代號", value='AAPL')
-    start_date = st.sidebar.date_input("選擇開始日期", value=pd.to_datetime("2020-01-01"))
-    end_date = st.sidebar.date_input("選擇結束日期", value=pd.to_datetime("2023-12-31"))
-    interval = st.sidebar.selectbox("選擇數據頻率", options=['1d', '1wk', '1mo'], index=0)
-    strategy_name = st.sidebar.selectbox("選擇交易策略", options=["Bollinger Bands", "KDJ", "RSI", "MACD", "唐奇安通道"], index=0)
-
-    if strategy_name == "Bollinger Bands":
-        bollinger_period = st.sidebar.slider("布林通道週期", min_value=5, max_value=50, value=20, step=1)
-        bollinger_std = st.sidebar.slider("布林通道標準差倍數", min_value=1.0, max_value=3.0, value=2.0, step=0.1)
-    elif strategy_name == "KDJ":
-        kdj_period = st.sidebar.slider("KDJ週期", min_value=5, max_value=50, value=14, step=1)
-    elif strategy_name == "RSI":
-        rsi_period = st.sidebar.slider("RSI週期", min_value=5, max_value=50, value=14, step=1)
-    elif strategy_name == "MACD":
-        short_window = st.sidebar.slider("短期EMA窗口", min_value=5, max_value=50, value=12, step=1)
-        long_window = st.sidebar.slider("長期EMA窗口", min_value=10, max_value=100, value=26, step=1)
-        signal_window = st.sidebar.slider("信號線窗口", min_value=5, max_value=50, value=9, step=1)
-    elif strategy_name == "唐奇安通道":
-        donchian_period = st.sidebar.slider("唐奇安通道週期", min_value=5, max_value=50, value=20, step=1)
-
+    # 使用者輸入股票代碼和日期範圍
+    stockname = st.text_input('輸入股票代碼（例如AAPL）：', 'AAPL')
+    start_date = st.text_input('輸入開始日期（YYYY-MM-DD）：', '2020-01-01')
+    end_date = st.text_input('輸入結束日期（YYYY-MM-DD）：', '2021-01-01')
+    interval = st.selectbox('選擇股票數據的間隔', ('1d', '1wk', '1mo'), index=0)
+    
+    # 載入股票數據
     stock = load_stock_data(stockname, start_date, end_date, interval)
-    if stock is not None:
-        st.subheader(f"股票代號: {stockname}")
-        st.write(stock.head())
+    if stock is None:
+        return
+    
+    # 選擇要分析的策略
+    strategy_name = st.selectbox('選擇分析的策略', ('布林通道', 'KDJ', 'RSI', 'MACD', '唐奇安通道'))
+    
+    # 計算所選策略的指標
+    if strategy_name == '布林通道':
+        stock = calculate_bollinger_bands(stock)
+        signals, win_rate = bollinger_band_strategy(stock, period=20)
+        st.write("策略回測績效:")
+        st.write(f"勝率: {win_rate:.2f}%")
+        st.write(signals.head())
+        plot_stock_data(signals, strategy_name)
 
-        if strategy_name == "Bollinger Bands":
-            signals, win_rate = bollinger_band_strategy(stock, period=bollinger_period, std_dev=bollinger_std)
-            st.write("策略回測績效:")
-            st.write(f"勝率: {win_rate:.2f}%")
-            st.write(signals.head())
-            plot_stock_data(signals, strategy_name)
-        elif strategy_name == "KDJ":
-            signals, win_rate = kdj_strategy(stock, period=kdj_period)
-            st.write("策略回測績效:")
-            st.write(f"勝率: {win_rate:.2f}%")
-            st.write(signals.head())
-            plot_kdj(signals)
-        elif strategy_name == "RSI":
-            signals, win_rate = rsi_strategy(stock, period=rsi_period)
-            st.write("策略回測績效:")
-            st.write(f"勝率: {win_rate:.2f}%")
-            st.write(signals.head())
-            plot_rsi(signals)
-        elif strategy_name == "MACD":
-            signals, win_rate = macd_strategy(stock, short_window=short_window, long_window=long_window, signal_window=signal_window)
-            st.write("策略回測績效:")
-            st.write(f"勝率: {win_rate:.2f}%")
-            st.write(signals.head())
-            plot_macd(signals)
-        elif strategy_name == "唐奇安通道":
-            signals, win_rate = donchian_channel_strategy(stock, period=donchian_period)
-            st.write("策略回測績效:")
-            st.write(f"勝率: {win_rate:.2f}%")
-            st.write(signals.head())
-            plot_stock_data(signals, strategy_name)
+    elif strategy_name == 'KDJ':
+        stock = calculate_kdj(stock)
+        plot_kdj(stock)
+
+    elif strategy_name == 'RSI':
+        stock = calculate_rsi(stock)
+        signals, win_rate = rsi_strategy(stock)
+        st.write("策略回測績效:")
+        st.write(f"勝率: {win_rate:.2f}%")
+        st.write(signals.head())
+        plot_rsi(signals)
+
+    elif strategy_name == 'MACD':
+        stock = calculate_macd(stock)
+        signals, win_rate = macd_strategy(stock)
+        st.write("策略回測績效:")
+        st.write(f"勝率: {win_rate:.2f}%")
+        st.write(signals.head())
+        plot_macd(signals)
+
+    elif strategy_name == '唐奇安通道':
+        stock = calculate_donchian_channels(stock)
+        signals, win_rate = donchian_channel_strategy(stock, period=20)
+        st.write("策略回測績效:")
+        st.write(f"勝率: {win_rate:.2f}%")
+        st.write(signals.head())
+        plot_donchian_channels(signals)
 
 if __name__ == '__main__':
     main()
