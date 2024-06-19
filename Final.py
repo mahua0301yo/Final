@@ -3,6 +3,7 @@ import yfinance as yf
 import pandas as pd
 import streamlit as st
 import plotly.graph_objs as go
+from plotly.subplots import make_subplots
 
 # 定義函數來讀取股票數據
 def load_stock_data(stockname, start_date, end_date, interval):
