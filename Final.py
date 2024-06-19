@@ -49,7 +49,7 @@ def calculate_kdj(stock, period=14):
     stock['J'] = 3 * stock['K'] - 2 * stock['D']
     return stock
 
-# 定義函數來計算技術指標，包括布林通道和MACD
+# 定義函數來計算布林通道和MACD指標
 def calculate_indicators(stock, bollinger_period, bollinger_std, macd_short_period, macd_long_period, macd_signal_period):
     # 計算布林通道
     stock['Middle_Band'] = stock['Close'].rolling(window=bollinger_period).mean()
@@ -66,65 +66,45 @@ def calculate_indicators(stock, bollinger_period, bollinger_std, macd_short_peri
     return stock
 
 # 定義交易策略函數
-def trading_strategy(stock, long_ma_period, short_ma_period, move_stop_loss):
-    stock['Long_MA'] = stock['Close'].rolling(window=long_ma_period).mean()
-    stock['Short_MA'] = stock['Close'].rolling(window=short_ma_period).mean()
+def kdj_strategy(stock):
     stock['Signal'] = 0
-    stock['Signal'][short_ma_period:] = np.where(stock['Short_MA'][short_ma_period:] > stock['Long_MA'][short_ma_period:], 1, 0)
-    stock['Position'] = stock['Signal'].diff()
+    stock['Signal'] = np.where((stock['K'] > stock['D']) & (stock['K'].shift(1) <= stock['D'].shift(1)), 1, stock['Signal'])
+    stock['Signal'] = np.where((stock['K'] < stock['D']) & (stock['K'].shift(1) >= stock['D'].shift(1)), -1, stock['Signal'])
+    return stock
 
-    order_record = []
+def bollinger_strategy(stock):
+    stock['Signal'] = 0
+    stock['Signal'] = np.where(stock['Close'] < stock['Lower_Band'], 1, stock['Signal'])
+    stock['Signal'] = np.where(stock['Close'] > stock['Upper_Band'], -1, stock['Signal'])
+    return stock
 
-    for index, row in stock.iterrows():
-        if row['Position'] == 1:
-            order_record.append(('Buy', row['Date'], row['Close']))
-        elif row['Position'] == -1:
-            order_record.append(('Sell', row['Date'], row['Close']))
-
-    return order_record
+def macd_strategy(stock):
+    stock['Signal'] = 0
+    stock['Signal'] = np.where((stock['MACD'] > stock['MACD_Signal']) & (stock['MACD'].shift(1) <= stock['MACD_Signal'].shift(1)), 1, stock['Signal'])
+    stock['Signal'] = np.where((stock['MACD'] < stock['MACD_Signal']) & (stock['MACD'].shift(1) >= stock['MACD_Signal'].shift(1)), -1, stock['Signal'])
+    return stock
 
 # 計算績效指標
-def calculate_performance(order_record):
+def calculate_performance(stock):
     initial_cash = 1000000  # 初始資金
     cash = initial_cash
     position = 0
-    max_drawdown = 0
-    drawdown_duration = 0
-    peak_value = initial_cash
     trades = []
-    consecutive_losses = 0
-    max_consecutive_loss = 0
     
-    for order in order_record:
-        action, date, price = order
-        if action == 'Buy':
-            position = cash / price
+    for index, row in stock.iterrows():
+        if row['Signal'] == 1 and cash > 0:
+            position = cash / row['Close']
             cash = 0
-        elif action == 'Sell':
-            cash = position * price
+        elif row['Signal'] == -1 and position > 0:
+            cash = position * row['Close']
             position = 0
-            profit = cash - initial_cash
-            trades.append(profit)
-            if cash > peak_value:
-                peak_value = cash
-                drawdown_duration = 0
-            else:
-                drawdown_duration += 1
-                if cash < peak_value:
-                    drawdown = (peak_value - cash) / peak_value
-                    if drawdown > max_drawdown:
-                        max_drawdown = drawdown
-            if profit > 0:
-                consecutive_losses = 0
-            else:
-                consecutive_losses += 1
-                if consecutive_losses > max_consecutive_loss:
-                    max_consecutive_loss = consecutive_losses
+            trades.append(cash - initial_cash)
     
-    total_profit = cash - initial_cash
+    total_profit = cash + (position * stock.iloc[-1]['Close']) - initial_cash
     win_rate = sum(1 for trade in trades if trade > 0) / len(trades) if trades else 0
-    max_drawdown = max_drawdown * 100  # Convert to percentage
-    return_rate = (total_profit / initial_cash) * 100  # Convert to percentage
+    max_consecutive_loss = calculate_max_consecutive_losses(trades)
+    max_drawdown = calculate_max_drawdown(stock, initial_cash)
+    return_rate = (total_profit / initial_cash) * 100
     
     performance_metrics = {
         'Total Profit': total_profit,
@@ -136,26 +116,71 @@ def calculate_performance(order_record):
     
     return performance_metrics
 
+# 計算最大連續虧損
+def calculate_max_consecutive_losses(trades):
+    max_consecutive_loss = 0
+    current_loss_streak = 0
+    
+    for trade in trades:
+        if trade < 0:
+            current_loss_streak += 1
+        else:
+            if current_loss_streak > max_consecutive_loss:
+                max_consecutive_loss = current_loss_streak
+            current_loss_streak = 0
+    
+    if current_loss_streak > max_consecutive_loss:
+        max_consecutive_loss = current_loss_streak
+    
+    return max_consecutive_loss
+
+# 計算最大回撤
+def calculate_max_drawdown(stock, initial_cash):
+    peak = initial_cash
+    max_drawdown = 0
+    cash = initial_cash
+    position = 0
+    
+    for index, row in stock.iterrows():
+        if row['Signal'] == 1 and cash > 0:
+            position = cash / row['Close']
+            cash = 0
+        elif row['Signal'] == -1 and position > 0:
+            cash = position * row['Close']
+            position = 0
+        
+        current_value = cash + (position * row['Close'])
+        if current_value > peak:
+            peak = current_value
+        drawdown = (peak - current_value) / peak
+        if drawdown > max_drawdown:
+            max_drawdown = drawdown
+    
+    return max_drawdown * 100  # Convert to percentage
+
 # 定義繪製股票數據的函數
-def plot_stock_data(stock, order_record):
+def plot_stock_data(stock, strategy_name):
     fig = go.Figure()
 
     # 繪製收盤價
     fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Close'], mode='lines', name='Close'))
 
-    # 繪製布林通道
-    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Upper_Band'], mode='lines', name='Upper Band'))
-    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Lower_Band'], mode='lines', name='Lower Band'))
+    if strategy_name == "KDJ":
+        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['K'], mode='lines', name='K'))
+        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['D'], mode='lines', name='D'))
+        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['J'], mode='lines', name='J'))
+    elif strategy_name == "Bollinger Bands":
+        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Upper_Band'], mode='lines', name='Upper Band'))
+        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Lower_Band'], mode='lines', name='Lower Band'))
+    elif strategy_name == "MACD":
+        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['MACD'], mode='lines', name='MACD'))
+        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['MACD_Signal'], mode='lines', name='MACD Signal'))
+        fig.add_trace(go.Bar(x=stock['Date'], y=stock['MACD_Hist'], name='MACD Hist'))
     
-    # 繪製MACD
-    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['MACD'], mode='lines', name='MACD'))
-    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['MACD_Signal'], mode='lines', name='MACD Signal'))
-    fig.add_trace(go.Bar(x=stock['Date'], y=stock['MACD_Hist'], name='MACD Hist'))
-
     st.plotly_chart(fig)
 
     # 計算和顯示績效指標
-    performance_metrics = calculate_performance(order_record)
+    performance_metrics = calculate_performance(stock)
     st.write("績效指標:")
     st.write(f"總損益: {performance_metrics['Total Profit']}")
     st.write(f"勝率: {performance_metrics['Win Rate']}")
@@ -183,19 +208,20 @@ def main():
     interval_label = st.selectbox("選擇K線時間長", list(interval_options.keys()))
     interval = interval_options[interval_label]
 
-    # 輸入布林通道的週期和標準差倍數
-    bollinger_period = st.number_input('請輸入布林通道週期', min_value=1, max_value=100, value=20, step=1)
-    bollinger_std = st.number_input('請輸入布林通道標準差倍數', min_value=0.1, max_value=10.0, value=2.0, step=0.1)
+    # 選擇技術指標
+    strategy_options = ["KDJ", "Bollinger Bands", "MACD"]
+    strategy_name = st.selectbox("選擇技術指標", strategy_options)
 
-    # 輸入MACD的參數
-    macd_short_period = st.number_input('請輸入MACD短期EMA週期', min_value=1, max_value=50, value=12, step=1)
-    macd_long_period = st.number_input('請輸入MACD長期EMA週期', min_value=1, max_value=50, value=26, step=1)
-    macd_signal_period = st.number_input('請輸入MACD信號線週期', min_value=1, max_value=50, value=9, step=1)
-
-    # 輸入移動停損點數和均線參數
-    long_ma_period = st.number_input('請輸入長期均線週期', min_value=1, max_value=100, value=20, step=1)
-    short_ma_period = st.number_input('請輸入短期均線週期', min_value=1, max_value=100, value=10, step=1)
-    move_stop_loss = st.number_input('請輸入移動停損點數', min_value=1, max_value=100, value=30, step=1)
+    # 設定指標參數
+    if strategy_name == "KDJ":
+        kdj_period = st.number_input('請輸入KDJ週期', min_value=1, max_value=100, value=14, step=1)
+    elif strategy_name == "Bollinger Bands":
+        bollinger_period = st.number_input('請輸入布林通道週期', min_value=1, max_value=100, value=20, step=1)
+        bollinger_std = st.number_input('請輸入布林通道標準差倍數', min_value=0.1, max_value=10.0, value=2.0, step=0.1)
+    elif strategy_name == "MACD":
+        macd_short_period = st.number_input('請輸入MACD短期EMA週期', min_value=1, max_value=50, value=12, step=1)
+        macd_long_period = st.number_input('請輸入MACD長期EMA週期', min_value=1, max_value=50, value=26, step=1)
+        macd_signal_period = st.number_input('請輸入MACD信號線週期', min_value=1, max_value=50, value=9, step=1)
 
     # 驗證日期輸入
     if start_date > end_date:
@@ -203,9 +229,17 @@ def main():
     else:
         stock = load_stock_data(stockname, start_date, end_date, interval)
         if stock is not None:
-            stock = calculate_indicators(stock, bollinger_period, bollinger_std, macd_short_period, macd_long_period, macd_signal_period)
-            order_record = trading_strategy(stock, long_ma_period, short_ma_period, move_stop_loss)
-            plot_stock_data(stock, order_record)
+            if strategy_name == "KDJ":
+                stock = calculate_kdj(stock, kdj_period)
+                stock = kdj_strategy(stock)
+            elif strategy_name == "Bollinger Bands":
+                stock = calculate_indicators(stock, bollinger_period, bollinger_std, 0, 0, 0)
+                stock = bollinger_strategy(stock)
+            elif strategy_name == "MACD":
+                stock = calculate_indicators(stock, 0, 0, macd_short_period, macd_long_period, macd_signal_period)
+                stock = macd_strategy(stock)
+            
+            plot_stock_data(stock, strategy_name)
 
 if __name__ == "__main__":
     main()
