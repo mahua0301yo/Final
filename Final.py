@@ -76,20 +76,9 @@ def plot_stock_data(stock, strategy_name):
                                  close=stock['Close'],
                                  name='價格'), row=1, col=1)
 
-    if 'Upper_Band' in stock.columns:
-        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Upper_Band'], line=dict(color='red', width=1), name='上軌'), row=1, col=1)
-    if 'Middle_Band' in stock.columns:
-        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Middle_Band'], line=dict(color='blue', width=1), name='中軌'), row=1, col=1)
-    if 'Lower_Band' in stock.columns:
-        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Lower_Band'], line=dict(color='red', width=1), name='下軌'), row=1, col=1)
-    
-    # Add Donchian Channels
-    if 'Upper_Channel' in stock.columns:
-        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Upper_Channel'], line=dict(color='green', width=1), name='唐奇安上通道'), row=1, col=1)
-    if 'Middle_Channel' in stock.columns:
-        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Middle_Channel'], line=dict(color='orange', width=1), name='唐奇安中軌'), row=1, col=1)
-    if 'Lower_Channel' in stock.columns:
-        fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Lower_Channel'], line=dict(color='green', width=1), name='唐奇安下通道'), row=1, col=1)
+    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Middle_Band'], line=dict(color='blue', width=1), name='中軌'), row=1, col=1)
+    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Upper_Band'], line=dict(color='red', width=1), name='上軌'), row=1, col=1)
+    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Lower_Band'], line=dict(color='red', width=1), name='下軌'), row=1, col=1)
     
     fig.add_trace(go.Bar(x=stock['Date'], y=stock['amount'], name='交易量'), row=2, col=1)
 
@@ -146,6 +135,28 @@ def plot_macd(stock):
                            yaxis_title='數值')
     st.plotly_chart(fig_macd)
 
+# 繪製唐奇安通道
+def plot_donchian_channels(stock):
+    fig_donchian = make_subplots(rows=1, cols=1, shared_xaxes=True,
+                                 vertical_spacing=0.02)
+
+    fig_donchian.add_trace(go.Candlestick(x=stock['Date'],
+                                          open=stock['Open'],
+                                          high=stock['High'],
+                                          low=stock['Low'],
+                                          close=stock['Close'],
+                                          name='價格'), row=1, col=1)
+
+    fig_donchian.add_trace(go.Scatter(x=stock['Date'], y=stock['Middle_Channel'], line=dict(color='blue', width=1), name='中軌'), row=1, col=1)
+    fig_donchian.add_trace(go.Scatter(x=stock['Date'], y=stock['Upper_Channel'], line=dict(color='red', width=1), name='上軌'), row=1, col=1)
+    fig_donchian.add_trace(go.Scatter(x=stock['Date'], y=stock['Lower_Channel'], line=dict(color='red', width=1), name='下軌'), row=1, col=1)
+
+    fig_donchian.update_layout(title='唐奇安通道',
+                               xaxis_title='日期',
+                               yaxis_title='價格')
+
+    st.plotly_chart(fig_donchian)
+
 # Streamlit應用程式主體
 def main():
     st.title("股票技術分析工具")
@@ -154,7 +165,7 @@ def main():
     start_date = st.sidebar.date_input("選擇開始日期", value=pd.to_datetime("2020-01-01"))
     end_date = st.sidebar.date_input("選擇結束日期", value=pd.to_datetime("2023-12-31"))
     interval = st.sidebar.selectbox("選擇數據頻率", options=['1d', '1wk', '1mo'], index=0)
-    strategy_name = st.sidebar.selectbox("選擇交易策略", options=["Bollinger Bands", "KDJ", "RSI", "MACD"], index=0)
+    strategy_name = st.sidebar.selectbox("選擇交易策略", options=["Bollinger Bands", "KDJ", "RSI", "MACD", "唐奇安通道"], index=0)
 
     if strategy_name == "Bollinger Bands":
         bollinger_period = st.sidebar.slider("布林通道週期", min_value=5, max_value=50, value=20, step=1)
@@ -185,10 +196,9 @@ def main():
         elif strategy_name == "MACD":
             stock = calculate_macd(stock, short_window=short_window, long_window=long_window, signal_window=signal_window)
             plot_macd(stock)
-
-        # Calculate and plot Donchian Channels
-        stock = calculate_donchian_channels(stock, period=20)
-        plot_stock_data(stock, "唐奇安通道")
+        elif strategy_name == "唐奇安通道":
+            stock = calculate_donchian_channels(stock, period=20)
+            plot_donchian_channels(stock)
 
 if __name__ == "__main__":
     main()
