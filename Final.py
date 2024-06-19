@@ -104,20 +104,19 @@ def plot_rsi(stock):
     fig.add_trace(go.Scatter(x=stock['Date'], y=np.where(stock['Overbought'], 80, None),
                              mode='markers', marker=dict(color='red', size=10), name='超買 >80'), row=2, col=1)
     fig.add_trace(go.Scatter(x=stock['Date'], y=np.where(stock['Oversold'], 20, None),
-                             mode='markers', marker=dict(color='blue', size=10), name='超賣 <20'), row=2, col=1)
+                             mode='markers', marker=dict(color='green', size=10), name='超賣 <20'), row=2, col=1)
 
     fig.update_layout(title="RSI策略圖", xaxis_title='日期', yaxis_title='價格', xaxis_rangeslider_visible=False)
     st.plotly_chart(fig)
 
-
 def plot_macd(stock):
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.1,
-                        subplot_titles=("MACD指標", "MACD值"))
+                        subplot_titles=("MACD指標", "MACD柱狀圖"))
 
     fig.add_trace(go.Candlestick(x=stock['Date'], open=stock['Open'], high=stock['High'],
                                  low=stock['Low'], close=stock['Close'], name='K線圖'), row=1, col=1)
     fig.add_trace(go.Scatter(x=stock['Date'], y=stock['MACD'], mode='lines', name='MACD'), row=2, col=1)
-    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Signal_Line'], mode='lines', name='Signal Line'), row=2, col=1)
+    fig.add_trace(go.Scatter(x=stock['Date'], y=stock['Signal_Line'], mode='lines', name='信號線'), row=2, col=1)
     fig.add_trace(go.Bar(x=stock['Date'], y=stock['Histogram'], name='Histogram'), row=2, col=1)
 
     fig.update_layout(title="MACD策略圖", xaxis_title='日期', yaxis_title='價格', xaxis_rangeslider_visible=False)
@@ -137,24 +136,32 @@ def plot_donchian_channels(stock):
     st.plotly_chart(fig)
 
 # 定義交易策略
-def trading_strategy(stock, strategy_name):
+def trading_strategy(stock, strategy_name, stop_loss_percent):
     # 根據不同的策略進行交易
     if strategy_name == "Bollinger Bands":
-        stock['Position'] = np.where(stock['Close'] > stock['Upper_Band'], -1, np.nan)
-        stock['Position'] = np.where(stock['Close'] < stock['Lower_Band'], 1, stock['Position'])
+        stock['Position'] = np.nan
+        stock.loc[stock['Close'] > stock['Upper_Band'], 'Position'] = -1
+        stock.loc[stock['Close'] < stock['Lower_Band'], 'Position'] = 1
     elif strategy_name == "KDJ":
         stock['Position'] = np.where(stock['K'] > stock['D'], 1, -1)
     elif strategy_name == "RSI":
-        stock['Position'] = np.where(stock['RSI'] < 20, 1, np.nan)
-        stock['Position'] = np.where(stock['RSI'] > 80, -1, stock['Position'])
+        stock['Position'] = np.nan
+        stock.loc[stock['RSI'] < 20, 'Position'] = 1
+        stock.loc[stock['RSI'] > 80, 'Position'] = -1
     elif strategy_name == "MACD":
         stock['Position'] = np.where(stock['MACD'] > stock['Signal_Line'], 1, -1)
     elif strategy_name == "唐奇安通道":
-        stock['Position'] = np.where(stock['Close'] > stock['Donchian_High'].shift(1), 1, np.nan)
-        stock['Position'] = np.where(stock['Close'] < stock['Donchian_Low'].shift(1), -1, stock['Position'])
+        stock['Position'] = np.nan
+        stock.loc[stock['Close'] > stock['Donchian_High'].shift(1), 'Position'] = 1
+        stock.loc[stock['Close'] < stock['Donchian_Low'].shift(1), 'Position'] = -1
 
     stock['Position'].fillna(method='ffill', inplace=True)
     stock['Position'].fillna(0, inplace=True)
+
+    # 加入止損功能
+    stop_loss_level = stock['Close'] * (1 - stop_loss_percent / 100)
+    stock['Position'] = np.where(stock['Close'] < stop_loss_level, 0, stock['Position'])
+
     stock['Market_Return'] = stock['Close'].pct_change()
     stock['Strategy_Return'] = stock['Market_Return'] * stock['Position'].shift(1)
     stock['Cumulative_Strategy_Return'] = (1 + stock['Strategy_Return']).cumprod() - 1
@@ -210,29 +217,37 @@ def main():
     elif strategy_name == "唐奇安通道":
         donchian_period = st.sidebar.slider("唐奇安通道週期", min_value=5, max_value=50, value=20, step=1)
 
+    # 添加止損選項
+    stop_loss_percent = st.sidebar.slider("止損百分比", min_value=1, max_value=10, value=5, step=1)
+
+    # 讀取股票數據
     stock = load_stock_data(stockname, start_date, end_date, interval)
-    if stock is not None:
-        st.subheader(f"股票代號: {stockname}")
-        st.write(stock.head())
+    if stock is None:
+        return
 
-        if strategy_name == "Bollinger Bands":
-            stock = calculate_bollinger_bands(stock, period=bollinger_period, std_dev=bollinger_std)
-            plot_bollinger_bands(stock)
-        elif strategy_name == "KDJ":
-            stock = calculate_kdj(stock, period=kdj_period)
-            plot_kdj(stock)
-        elif strategy_name == "RSI":
-            stock = calculate_rsi(stock, period=rsi_period)
-            plot_rsi(stock)
-        elif strategy_name == "MACD":
-            stock = calculate_macd(stock, short_window=short_window, long_window=long_window, signal_window=signal_window)
-            plot_macd(stock)
-        elif strategy_name == "唐奇安通道":
-            stock = calculate_donchian_channels(stock, period=donchian_period)
-            plot_donchian_channels(stock)
-        
-        stock = trading_strategy(stock, strategy_name)
-        st.write(f"策略績效 (累積報酬): {stock['Cumulative_Strategy_Return'].iloc[-1]:.2%}")
+    # 計算技術指標
+    if strategy_name == "Bollinger Bands":
+        stock = calculate_bollinger_bands(stock, bollinger_period, bollinger_std)
+        plot_bollinger_bands(stock)
+    elif strategy_name == "KDJ":
+        stock = calculate_kdj(stock, kdj_period)
+        plot_kdj(stock)
+    elif strategy_name == "RSI":
+        stock = calculate_rsi(stock, rsi_period)
+        plot_rsi(stock)
+    elif strategy_name == "MACD":
+        stock = calculate_macd(stock, short_window, long_window, signal_window)
+        plot_macd(stock)
+    elif strategy_name == "唐奇安通道":
+        stock = calculate_donchian_channels(stock, donchian_period)
+        plot_donchian_channels(stock)
 
-if __name__ == "__main__":
+    # 交易策略和績效分析
+    stock = trading_strategy(stock, strategy_name, stop_loss_percent)
+
+    # 顯示原始數據
+    st.subheader("原始數據")
+    st.write(stock)
+
+if __name__ == '__main__':
     main()
